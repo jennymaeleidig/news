@@ -9,8 +9,8 @@ registry, not this file:
 python -m feeds gen --direct-table docs/direct-feeds.md
 ```
 
-| Source | Site | Why it's here | Feed URL |
-|--------|------|---------------|----------|
+| Feed | Site | Why it's here | Feed URL |
+|------|------|---------------|----------|
 | Hugging Face blog | [huggingface.co](https://huggingface.co/blog) | Headlines only — their feed carries no descriptions. | `https://huggingface.co/blog/feed.xml` |
 | radarai.top | [radarai.top](https://radarai.top) | Aggregator by design; links go off-site. | `https://radarai.top/en/feed.xml` |
 | AI Hero Skills | [aihero.dev](https://www.aihero.dev) |  | `https://www.aihero.dev/skills/rss.xml` |

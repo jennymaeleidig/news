@@ -105,15 +105,16 @@ def render_index(registry, runs: list[SourceRun], built_at: datetime) -> str:
     for source in registry.hosted():
         run = by_id[source.id]
         feed_href = store.address(registry.feed, source)
-        name_cell = (
-            f'<a href="{escape(feed_href)}"><b>{escape(source.name)}</b></a><br>'
-            f'<span class="url">{escape(store.path(source))}</span>'
+        feed_cell = (
+            f'<a class="url" href="{escape(feed_href)}">'
+            f"{escape(store.path(source))}</a>"
         )
         hosted_rows.append(
             "<tr>"
-            f"<td>{name_cell}</td>"
+            f"<td><b>{escape(source.name)}</b></td>"
             f"<td>{_site_link(source.site)}</td>"
             f"<td>{escape(source.why) if source.why else ''}</td>"
+            f"<td>{feed_cell}</td>"
             f"<td>{_freshness_span(run)}</td>"
             "</tr>"
         )
@@ -142,10 +143,10 @@ def render_index(registry, runs: list[SourceRun], built_at: datetime) -> str:
 <h1>{escape(registry.feed.title)}</h1>
 <p class="sub">{escape(registry.feed.description)}</p>
 <h2>Hosted feeds · generated here</h2>
-<table><thead><tr><th>Feed</th><th>Site</th><th>Why it's here</th><th>Last upstream fetch</th></tr></thead>
+<table><thead><tr><th>Feed</th><th>Site</th><th>Why it's here</th><th>Feed URL</th><th>Last upstream fetch</th></tr></thead>
 <tbody>{''.join(hosted_rows)}</tbody></table>
-<h2>Direct sources · subscribe to these yourself</h2>
-<table><thead><tr><th>Source</th><th>Site</th><th>Why it's here</th><th>Feed URL (paste into your reader)</th></tr></thead>
+<h2>Direct feeds · subscribe to these yourself</h2>
+<table><thead><tr><th>Feed</th><th>Site</th><th>Why it's here</th><th>Feed URL</th></tr></thead>
 <tbody>{''.join(direct_rows)}</tbody></table>
 <p class="note">OPML at <a href="/opml.xml"><span class="url">/opml.xml</span></a> · direct table also in the repo at <span class="url">docs/direct-feeds.md</span></p>
 </main>
@@ -197,8 +198,8 @@ registry, not this file:
 python -m feeds gen --direct-table docs/direct-feeds.md
 ```
 
-| Source | Site | Why it's here | Feed URL |
-|--------|------|---------------|----------|
+| Feed | Site | Why it's here | Feed URL |
+|------|------|---------------|----------|
 {table}
 """
 

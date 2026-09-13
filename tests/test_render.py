@@ -54,15 +54,25 @@ def test_direct_table_lists_all_direct_sources(registry):
         assert source.name in table
         assert source.url in table
     assert "python -m feeds gen --direct-table" in table      # regen instructions
-    body = table.split("|--------|", 1)[1]                    # rows only
+    assert "| Feed | Site | Why it's here | Feed URL |" in table  # same headers as the index
+    body = table.split("|------|", 1)[1]                    # rows only
     for hosted in registry.hosted():
         assert hosted.name not in body
+
+
+def test_both_index_tables_share_the_same_headers(registry):
+    # The two sections differ only in the hosted table's trailing freshness
+    # column: Feed, Site, Why it's here, Feed URL read the same in both.
+    html = render_index(registry, RUNS, BUILT_AT)
+    shared = "<th>Feed</th><th>Site</th><th>Why it's here</th><th>Feed URL</th>"
+    assert html.count(shared) == 2
+    assert f"{shared}<th>Last upstream fetch</th>" in html
 
 
 def test_index_renders_both_sections_with_freshness(registry):
     html = render_index(registry, RUNS, BUILT_AT)
     assert "Hosted feeds · generated here" in html
-    assert "Direct sources · subscribe to these yourself" in html
+    assert "Direct feeds · subscribe to these yourself" in html
     assert html.count('data-built="') == 6                    # every hosted row stamped
     assert 'data-state="failed"' in html                      # failed feed marked server-side
     assert "mins > 180" in html                               # stale only once older than 3 h
