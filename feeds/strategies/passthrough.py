@@ -1,7 +1,7 @@
 """passthrough: publish upstream's items unchanged.
 
-The browser request headers are the whole strategy — Reddit's native `.rss`
-403s non-browser user agents, which a reader app cannot send.
+The browser request headers and the RSS parser are the whole strategy: no
+filter, no field mapping.
 """
 
 from __future__ import annotations

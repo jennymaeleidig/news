@@ -1,7 +1,7 @@
 """Shared value types for the feeds pipeline.
 
 An Item is a verbatim feed entry: upstream's title/link/GUID/pubDate pass
-through untouched (hosting never changes item identity, ADR-0003). The
+through untouched (hosting never changes item identity). The
 only normalization is scheme-level (_https_normalize on links) and the
 pubDate re-render, which preserves the instant — same time, RFC-2822
 spelling — so a feed's output is stable across runs.
@@ -28,7 +28,7 @@ class Item:
 class FetchOutcome:
     """One upstream fetch: items on success, an error string on failure.
 
-    `note` is a non-fatal observation on a success (e.g. arXiv serving a
+    `note` is a non-fatal observation on a success (e.g. upstream serving a
     valid-but-empty channel on a declared skip day).
     """
 

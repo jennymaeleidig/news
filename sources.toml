@@ -20,15 +20,7 @@ language = "en"
 description = "Feeds this site publishes, and the sources behind them. The registry is sources.toml in the repo."
 description_template = "Items from {name}, part of Jenny's source log."
 
-# ---- direct (20) — subscribe to these in your reader ----
-
-[[sources]]
-id = "hf-blog"
-name = "Hugging Face blog"
-mode = "direct"
-url = "https://huggingface.co/blog/feed.xml"
-site = "https://huggingface.co/blog"
-note = "Headlines only — their feed carries no descriptions."
+# ---- direct (21) — subscribe to these in your reader ----
 
 [[sources]]
 id = "radarai"
@@ -172,94 +164,23 @@ url = "https://www.patreon.com/public-rss/2963533?show=875184"
 site = "https://www.patreon.com/truelit"
 note = "Unlisted first-party Patreon podcast feed; mixes [PREVIEW] stubs with free episodes."
 
-# ---- hosted (6) — this repo publishes /feeds/<id>.xml ----
+[[sources]]
+id = "buddha-in-the-mud"
+name = "Buddha in the Mud"
+mode = "direct"
+url = "https://buddhainthemud.com/feed/"
+site = "https://buddhainthemud.com"
+note = "Full text."
 
 [[sources]]
-id = "arxiv-cl"
-name = "arXiv cs.CL (LLM)"
-mode = "hosted"
-url = "https://rss.arxiv.org/rss/cs.CL"
-site = "https://arxiv.org"
-why = "arXiv offers no server-side keyword filter; this trims the cs.CL firehose to the LLM/agent subset."
-note = "Kept for the LLM subset of the comp-ling firehose; topic-filtered server-side."
+id = "lazy-sundays"
+name = "Lazy Sundays"
+mode = "direct"
+url = "https://www.lazysundays.net/feed"
+site = "https://www.lazysundays.net"
+note = "Summary only (~125 chars)."
 
-[sources.strategy]
-name = "topic_filter"
-terms = [
-  "large language model", "language model", "llm", "llms", "foundation model",
-  "alignment", "rlhf", "fine-tuning", "fine tuning", "instruction tuning",
-  "in-context learning", "chain-of-thought", "chain of thought", "hallucination",
-  "pre-training", "pretraining", "post-training", "prompt", "reasoning",
-  "multimodal", "code generation", "code agent", "coding agent", "code model",
-  "program synthesis", "program repair", "code repair", "coding assistant",
-  "agentic", "software engineering agent", "software engineering benchmark",
-  "sw-bench", "llm agent", "ai agent", "tool use", "tool-use", "function calling",
-  "code completion", "copilot", "code reasoning", "code intelligence",
-  "code benchmark",
-]
-
-[[sources]]
-id = "arxiv-se"
-name = "arXiv cs.SE (software engineering)"
-mode = "hosted"
-url = "https://rss.arxiv.org/rss/cs.SE"
-site = "https://arxiv.org"
-why = "Same shape as arxiv-cl: the cs.SE firehose trimmed to the code/SE subset."
-note = "The code/SE subset, same topic filter approach."
-
-[sources.strategy]
-name = "topic_filter"
-terms = [
-  "code generation", "code agent", "coding agent", "code model",
-  "program synthesis", "program repair", "code repair", "coding assistant",
-  "agentic", "software engineering agent", "software engineering benchmark",
-  "sw-bench", "sw bench", "llm agent", "ai agent", "tool use", "tool-use",
-  "function calling", "code completion", "copilot", "code review",
-  "code reasoning", "code intelligence", "code benchmark",
-  "large language model", "language model", "llm", "llms",
-]
-
-[[sources]]
-id = "hf-daily-papers"
-name = "Hugging Face Daily Papers"
-mode = "hosted"
-url = "https://huggingface.co/api/daily_papers"
-site = "https://huggingface.co/papers"
-why = "No first-party feed exists (every feed path 401s); the keyless JSON API is the only upstream."
-note = "Staff-curated daily AI paper list; no first-party feed exists, so this repo renders one."
-
-[sources.strategy]
-name = "json_api"
-item = "$"
-title = "paper.title"
-link = "paper.id"
-link_prefix = "https://huggingface.co/papers/"
-date = "paper.submittedOnDailyAt"
-summary = "paper.summary"
-upvotes = "paper.upvotes"
-description = "▲ {upvotes} — {summary}"
-
-[[sources]]
-id = "reddit-localllama"
-name = "Reddit r/LocalLLaMA"
-mode = "hosted"
-url = "https://www.reddit.com/r/LocalLLaMA/.rss"
-site = "https://www.reddit.com/r/LocalLLaMA"
-why = "Reddit's native .rss 403s non-browser user agents, which a reader app can't send; the hosted fetch can."
-
-[sources.strategy]
-name = "passthrough"
-
-[[sources]]
-id = "reddit-rva"
-name = "Reddit r/rva"
-mode = "hosted"
-url = "https://www.reddit.com/r/rva/.rss"
-site = "https://www.reddit.com/r/rva"
-why = "Reddit's native .rss 403s non-browser user agents, which a reader app can't send; the hosted fetch can."
-
-[sources.strategy]
-name = "passthrough"
+# ---- hosted (1) — this repo publishes /feeds/<id>.xml ----
 
 [[sources]]
 id = "richmond-times-dispatch"

@@ -14,9 +14,8 @@ from typing import Protocol
 
 from feeds.model import FetchOutcome, Item
 
-# Browser impersonation shared by every outbound request. Reddit 403s
-# non-browser agents; PBS 202-empties some impersonation strings but serves
-# this one; richmond.com rate-limits plain clients.
+# Browser impersonation for every outbound request: our hosted upstream
+# (richmond.com) rate-limits plain clients with an HTTP 429 from datacenter IPs.
 BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -37,15 +36,6 @@ def rss_headers() -> dict:
             "application/rss+xml, application/atom+xml, "
             "application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5"
         ),
-        **_COMMON_HEADERS,
-    }
-
-
-def json_headers() -> dict:
-    """Headers for a JSON API upstream."""
-    return {
-        "User-Agent": BROWSER_USER_AGENT,
-        "Accept": "application/json, text/plain, */*;q=0.5",
         **_COMMON_HEADERS,
     }
 

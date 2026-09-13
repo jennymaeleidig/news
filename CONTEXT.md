@@ -73,9 +73,9 @@ row, and the annotation all spell (`summary_word`). The index badge marks
 _Avoid_: status, health, result code
 
 **Strategy**:
-A hosted source's named shape (`topic_filter`, `passthrough`, `json_api`):
-its request headers, its parser, its filter, and its parameters. One
-strategy spans the Fetch and Transform stages.
+A hosted source's named shape (`passthrough`): its request headers, its
+parser, its filter, and its parameters. One strategy spans the Fetch and
+Transform stages.
 _Avoid_: fetcher, handler, fetch config
 
 **Transform**:

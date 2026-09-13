@@ -1,6 +1,6 @@
 """Load and validate sources.toml — the single source of truth.
 
-The registry is the artifact (ADR-0003): this file is the owner's personal
+The registry is the artifact: this file is the owner's personal
 log of sources, and the feeds are one rendering of it. The loader is strict
 because everything downstream (public feed paths, the OPML, the index)
 derives from it — a malformed registry should fail the run, not silently

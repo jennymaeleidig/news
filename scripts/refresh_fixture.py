@@ -8,13 +8,12 @@ never silently redefine what we consider correct output.
 
     PYTHONPATH=. python scripts/refresh_fixture.py <source-id> [--built-at ISO]
 
-Writes tests/fixtures/<source-id>/{upstream.xml | upstream.json,expected.xml}.
-The snapshot is upstream's own response body, byte for byte (rss strategies
-land in upstream.xml, the json_api strategy in upstream.json), so the fixture
-test parses exactly what the source sent. expected.xml is produced by
-`publish.run_source` — the assembly the cron runs — with no predecessor and
-the clock frozen at --built-at, so the golden only changes when behavior or
-upstream content changes.
+Writes tests/fixtures/<source-id>/: the strategy's `snapshot_filename`,
+holding upstream's own response body byte for byte, plus `expected.xml`
+produced by `publish.run_source` — the assembly the cron runs — with no
+predecessor and the clock frozen at --built-at, so the golden only changes
+when behavior or upstream content changes. Any other file in that directory
+is a shape a former strategy left behind and is dropped.
 """
 
 from __future__ import annotations
@@ -27,6 +26,21 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 FIXTURES = REPO / "tests" / "fixtures"
+
+
+def drop_stale(out: Path, snapshot: str) -> list[str]:
+    """Delete whatever in a fixture directory is not part of the fixture now.
+
+    The directory's shape is fixed — the strategy's snapshot plus
+    `expected.xml` — so anything else is a shape a former strategy wrote and
+    would otherwise sit there forever. Returns the names dropped.
+    """
+    dropped = []
+    for stale in sorted(p for p in out.iterdir()
+                        if p.is_file() and p.name not in (snapshot, "expected.xml")):
+        stale.unlink()
+        dropped.append(stale.name)
+    return dropped
 
 
 def main() -> int:
@@ -73,9 +87,8 @@ def main() -> int:
     snapshot = source.strategy.snapshot_filename
     out = FIXTURES / source.id
     out.mkdir(parents=True, exist_ok=True)
-    for stale in sorted({"upstream.xml", "upstream.json"} - {snapshot}):
-        if (out / stale).exists():                      # strategy changed: drop the old shape
-            (out / stale).unlink()
+    for name in drop_stale(out, snapshot):
+        print(f"dropped stale {name}")
 
     (out / snapshot).write_bytes(raw)
     (out / "expected.xml").write_bytes(xml)

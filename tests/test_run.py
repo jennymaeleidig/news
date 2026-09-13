@@ -33,7 +33,7 @@ def test_every_state_has_a_summary_word():
 
 
 def test_source_run_carries_the_vocabulary_not_a_bare_string():
-    run = SourceRun(source_id="arxiv-cl", state=RunState.STALE)
+    run = SourceRun(source_id="some-source", state=RunState.STALE)
     assert run.state is RunState.STALE
     assert run.state.summary_word == "STALE — predecessor re-emitted"
     assert run.item_count == 0 and run.last_build == ""

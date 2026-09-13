@@ -1,6 +1,5 @@
-"""The RSS parser shared by the two RSS-shaped strategies (`topic_filter` and
-`passthrough`): feedparser entries → Items, plus the predecessor's
-lastBuildDate.
+"""The RSS parser behind a passthrough strategy's `parse`: feedparser
+entries → Items, plus the predecessor's lastBuildDate.
 
 One mapping serves both directions — a live upstream fetch and reading back
 our own published feed (the merge's predecessor).
@@ -23,8 +22,8 @@ def parse(data: bytes) -> FetchOutcome:
         return FetchOutcome(items=[], error=f"feed parse error: {parsed.bozo_exception}")
 
     # A well-formed channel with zero entries is a success-with-note, not a
-    # failure: arXiv declares <skipDays> (weekends, holidays) and serves a
-    # valid empty channel those days.
+    # failure: a source can declare <skipDays> (weekends, holidays) and serve
+    # a valid empty channel those days.
     note = None
     if not parsed.entries and ("skipdays" in parsed.feed or "day" in parsed.feed):
         rebuilt = parsed.feed.get("updated") or ""

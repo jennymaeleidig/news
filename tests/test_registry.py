@@ -5,17 +5,17 @@ import tomllib
 
 import pytest
 
-from feeds.registry import RegistryError, load
+from feeds.registry import RegistryError, Source, load
 
 
 def test_real_registry_shape(registry):
-    assert len(registry.sources) == 26
-    assert len(registry.direct()) == 20
-    assert len(registry.hosted()) == 6
+    assert len(registry.sources) == 22
+    assert len(registry.direct()) == 21
+    assert len(registry.hosted()) == 1
     # Owner-blessed registry order (direct first, hosted last).
-    assert registry.direct()[0].id == "hf-blog"
-    assert registry.direct()[-1].id == "true-anon"
-    assert registry.hosted()[0].id == "arxiv-cl"
+    assert registry.direct()[0].id == "radarai"
+    assert registry.direct()[-1].id == "lazy-sundays"
+    assert registry.hosted()[0].id == "richmond-times-dispatch"
     assert registry.hosted()[-1].id == "richmond-times-dispatch"
 
 
@@ -28,7 +28,6 @@ def test_hosted_sources_declare_why_and_strategy(registry):
     for source in registry.hosted():
         assert source.why, f"{source.id} missing why"
         assert source.strategy is not None, f"{source.id} missing strategy"
-        assert source.strategy.name in ("topic_filter", "passthrough", "json_api")
 
 
 def test_direct_sources_declare_no_strategy_and_no_why(registry):
@@ -37,23 +36,19 @@ def test_direct_sources_declare_no_strategy_and_no_why(registry):
         assert not source.why
 
 
-def test_arxiv_term_lists_are_intact(registry):
-    by_id = {s.id: s for s in registry.hosted()}
-    assert len(by_id["arxiv-cl"].strategy.terms) == 42
-    assert len(by_id["arxiv-se"].strategy.terms) == 28
-    assert "sw bench" in by_id["arxiv-se"].strategy.terms
-
-
 def test_feed_meta_and_channel_description(registry):
     assert registry.feed.title == "Jenny's source log"
-    cl = registry.hosted()[0]
-    assert registry.feed.channel_description(cl) == (
-        "Kept for the LLM subset of the comp-ling firehose; "
-        "topic-filtered server-side."
+    # a source with a note: the note is what the channel says
+    noted = Source(id="x", name="X", mode="hosted", url="https://example.com/x.xml",
+                   why="because", note="Kept for the LLM subset, topic-filtered server-side.")
+    assert registry.feed.channel_description(noted) == (
+        "Kept for the LLM subset, topic-filtered server-side."
     )
-    rva = [s for s in registry.hosted() if s.id == "reddit-rva"][0]
-    assert registry.feed.channel_description(rva) == (
-        "Items from Reddit r/rva, part of Jenny's source log."
+    # a note-less hosted source falls back to the template naming it
+    note_less = registry.hosted()[0]
+    assert note_less.note == ""
+    assert registry.feed.channel_description(note_less) == (
+        "Items from Richmond Times-Dispatch, part of Jenny's source log."
     )
 
 
@@ -149,17 +144,28 @@ mode = "hosted"
 url = "https://example.com/a.xml"
 why = "because"
 [sources.strategy]
-name = "topic_filter"
-terms = []
+name = "passthrough"
+terms = ["llm"]
 """)
-    with pytest.raises(RegistryError, match=r"sources\[a\].*terms"):
+    with pytest.raises(RegistryError, match=r"sources\[a\].*unknown param"):
         load(path)
 
 
-def test_hosted_strategy_blocks_validate_into_typed_configs(registry):
-    by_id = {s.id: s for s in registry.hosted()}
-    assert by_id["arxiv-se"].strategy.terms[-1] == "llms"          # topic_filter
-    assert by_id["reddit-rva"].strategy.name == "passthrough"       # passthrough
-    hf = by_id["hf-daily-papers"].strategy                          # json_api
-    assert hf.item == "$" and hf.link == "paper.id"
-    assert not hasattr(hf, "params")
+def test_hosted_strategy_blocks_validate_into_typed_configs(tmp_path):
+    path = write_registry(tmp_path, """
+[feed]
+title = "t"
+link = "https://example.com/"
+[[sources]]
+id = "a"
+name = "A"
+mode = "hosted"
+url = "https://example.com/a.xml"
+why = "because"
+[sources.strategy]
+name = "passthrough"
+""")
+    strategy = load(path).hosted()[0].strategy
+    assert strategy.name == "passthrough"
+    assert strategy.snapshot_filename == "upstream.xml"
+    assert not hasattr(strategy, "params")

@@ -1,17 +1,17 @@
 # news-digest-agent
 
 A personal source log that publishes RSS feeds. `sources.toml` is the
-registry — 26 feeds worth reading, 20 of them subscribed directly in a
-reader app, 6 published by this repo at `https://jennymaeleidig.github.io/news-digest-agent/`.
+registry — 22 feeds worth reading, 21 of them subscribed directly in a
+reader app, 1 published by this repo at `https://jennymaeleidig.github.io/news-digest-agent/`.
 
 ## The site
 
 | Path | What it is |
 |------|------------|
 | `/` | The index: hosted feeds with a freshness stamp, direct sources with the URL to paste into a reader |
-| `/opml.xml` | All 26 sources as one flat OPML file, importable anywhere |
-| `/feeds/<id>.xml` | A feed this repo publishes for a hosted source (arXiv filtered to the LLM/SE subset, Hugging Face Daily Papers, the two Reddits, the Richmond Times-Dispatch) |
-| [`docs/direct-feeds.md`](docs/direct-feeds.md) | The 20 direct sources as a committed table |
+| `/opml.xml` | All 22 sources as one flat OPML file, importable anywhere |
+| `/feeds/<id>.xml` | A feed this repo publishes for a hosted source (the Richmond Times-Dispatch) |
+| [`docs/direct-feeds.md`](docs/direct-feeds.md) | The 21 direct sources as a committed table |
 
 ## How it works
 
@@ -23,10 +23,9 @@ registry → fetch → transform → merge → emit → publish
 
 - **fetch** — each hosted source is fetched with a browser-like client
   (bounded retry on 429/5xx, deterministic 4xx fail fast).
-- **transform** — filters only. `topic_filter` keeps items matching the
-  source's term list (the arXiv firehoses); `passthrough` and `json_api`
-  change nothing. Item identity is never rewritten: upstream's
-  title/link/GUID/date pass through verbatim.
+- **transform** — filters only. `passthrough`'s filter is the identity:
+  items go out as they came in, with upstream's
+  title/link/GUID/date verbatim.
 - **merge** — the fresh fetch is merged against the feed as currently
   published: wholesale replace on duplicate guids (upstream wins), items
   older than 30 days drop out, newest first (guid ascending on ties),

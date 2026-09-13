@@ -11,7 +11,7 @@ from feeds.run import RunState, SourceRun
 
 
 def test_main_logs_and_delegates_every_surface_to_render(monkeypatch, capsys, tmp_path):
-    runs = [SourceRun(source_id="reddit-rva", state=RunState.STALE, error="HTTP 403")]
+    runs = [SourceRun(source_id="some-source", state=RunState.STALE, error="HTTP 403")]
     summary = tmp_path / "summary.md"
     seen = {}
 
@@ -30,11 +30,11 @@ def test_main_logs_and_delegates_every_surface_to_render(monkeypatch, capsys, tm
     ]) == 0
 
     printed = capsys.readouterr().out
-    assert "reddit-rva: STALE — predecessor re-emitted (0 items" in printed  # the vocabulary
+    assert "some-source: STALE — predecessor re-emitted (0 items" in printed  # the vocabulary
     assert "  error: HTTP 403" in printed
     assert "::warning::from-the-renderer" in printed          # annotations come from render
     # the console log comes first, then the annotations as one block
-    assert printed.index("reddit-rva: STALE") < printed.index("::warning::from-the-renderer")
+    assert printed.index("some-source: STALE") < printed.index("::warning::from-the-renderer")
     # the summary file is the renderer's string, written as-is
     assert summary.read_text() == "SUMMARY-FROM-THE-RENDERER\n"
     # --built-at freezes the clock, trailing Z and all

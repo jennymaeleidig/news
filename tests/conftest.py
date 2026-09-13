@@ -15,8 +15,12 @@ from datetime import datetime, timezone
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from feeds.model import Item  # noqa: E402
+from feeds.registry import FeedMeta, Registry, Source  # noqa: E402
+from feeds.strategies import passthrough  # noqa: E402
 
 BUILT_AT = datetime(2026, 9, 13, 12, 0, tzinfo=timezone.utc)
+
+TEST_FEED = FeedMeta(title="Test log", link="https://example.com/")
 
 
 def make_item(
@@ -39,6 +43,41 @@ def make_item(
 def hosted_source(registry, source_id: str):
     """The one hosted source with this id — fixtures are per source id."""
     return next(s for s in registry.hosted() if s.id == source_id)
+
+
+def _hosted(source_id: str, strategy, **overrides) -> Source:
+    fields = {
+        "name": source_id.title(),
+        "url": f"https://up.example/{source_id}.xml",
+        "site": "https://site.example/",
+        "why": "because",
+    }
+    fields.update(overrides)
+    return Source(id=source_id, mode="hosted", strategy=strategy, **fields)
+
+
+def rss_source(source_id: str = "alpha", **overrides) -> Source:
+    """A hosted source built by hand. Render, publish and fetch tests take
+    their sources from here rather than from `sources.toml`: the registry is
+    one owner's list of feeds and it changes, but those behaviors never
+    cared which feed they were exercising."""
+    return _hosted(source_id, passthrough.build({"name": "passthrough"}), **overrides)
+
+
+def direct_source(source_id: str = "delta", **overrides) -> Source:
+    """A direct source built by hand: its own URL is what a reader subscribes
+    to, so there is no strategy and no `why`."""
+    fields = {
+        "name": source_id.title(),
+        "url": f"https://site.example/{source_id}.xml",
+        "site": "https://site.example/",
+    }
+    fields.update(overrides)
+    return Source(id=source_id, mode="direct", **fields)
+
+
+def registry_of(*sources) -> Registry:
+    return Registry(feed=TEST_FEED, sources=tuple(sources))
 
 
 class ScriptedTransport:

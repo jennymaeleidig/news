@@ -11,7 +11,6 @@ python -m feeds gen --direct-table docs/direct-feeds.md
 
 | Feed | Site | Why it's here | Feed URL |
 |------|------|---------------|----------|
-| Hugging Face blog | [huggingface.co](https://huggingface.co/blog) | Headlines only — their feed carries no descriptions. | `https://huggingface.co/blog/feed.xml` |
 | radarai.top | [radarai.top](https://radarai.top) | Aggregator by design; links go off-site. | `https://radarai.top/en/feed.xml` |
 | AI Hero Skills | [aihero.dev](https://www.aihero.dev) |  | `https://www.aihero.dev/skills/rss.xml` |
 | Democracy Now! | [democracynow.org](https://www.democracynow.org) |  | `https://www.democracynow.org/democracynow.rss` |
@@ -31,3 +30,5 @@ python -m feeds gen --direct-table docs/direct-feeds.md
 | Majority Report (YouTube) | [youtube.com](https://www.youtube.com/@TheMajorityReport) |  | `https://www.youtube.com/feeds/videos.xml?channel_id=UC-3jIAlnQmbbVMV6gR7K8aQ` |
 | HasanAbi (YouTube) | [youtube.com](https://www.youtube.com/@hasanabi) |  | `https://www.youtube.com/feeds/videos.xml?channel_id=UCtoaZpBnrd0lhycxYJ4MNOQ` |
 | True Anon | [patreon.com](https://www.patreon.com/truelit) | Unlisted first-party Patreon podcast feed; mixes [PREVIEW] stubs with free episodes. | `https://www.patreon.com/public-rss/2963533?show=875184` |
+| Buddha in the Mud | [buddhainthemud.com](https://buddhainthemud.com) | Full text. | `https://buddhainthemud.com/feed/` |
+| Lazy Sundays | [lazysundays.net](https://www.lazysundays.net) | Summary only (~125 chars). | `https://www.lazysundays.net/feed` |
