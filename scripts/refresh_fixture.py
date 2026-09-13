@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -34,11 +35,10 @@ def main() -> int:
     parser.add_argument("--built-at", default=None, help="freeze the clock (ISO 8601)")
     args = parser.parse_args()
 
-    import requests
-
-    from feeds.fetch import fetch_bytes
+    from feeds.fetch import FetchError, fetch_bytes
     from feeds.publish import run_source
     from feeds.registry import load
+    from feeds.transport import requests_get
 
     registry = load(REPO / "sources.toml")
     source = next((s for s in registry.hosted() if s.id == args.source_id), None)
@@ -53,9 +53,9 @@ def main() -> int:
     )
 
     try:
-        raw = fetch_bytes(source)                       # upstream's own bytes
-    except requests.RequestException as e:
-        print(f"fetch failed: {e}", file=sys.stderr)
+        raw = fetch_bytes(source, requests_get, time.sleep)   # upstream's own bytes
+    except FetchError as e:
+        print(f"{e}", file=sys.stderr)
         return 1
 
     outcome = source.strategy.parse(raw)

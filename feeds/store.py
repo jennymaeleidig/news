@@ -11,14 +11,9 @@ with the upstream fetch alone.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable
 
-import requests
-
-# Fetch a URL and return its body; raises requests.RequestException on
-# failure. Landing 04 replaces the requests implementation with the HTTP
-# seam while this shape — and every caller's — stays put.
-Transport = Callable[[str], bytes]
+from feeds.strategies.base import rss_headers
+from feeds.transport import Get, TransportError
 
 # The one place the published layout is spelled.
 _FEED_DIR = "feeds"
@@ -50,16 +45,16 @@ def write(out_dir: str | Path, source, data: bytes) -> None:
     target.write_bytes(data)
 
 
-def read(source, feed_meta, transport: Transport) -> bytes | None:
+def read(source, feed_meta, get: Get) -> bytes | None:
     """The predecessor's bytes, or None when the read fails — nothing
-    published yet, or Pages down. Either way the run continues with the
-    upstream fetch alone.
+    published yet, a non-success status, or a transport failure. Either way
+    the run continues with the upstream fetch alone.
 
-    "Fails" is the transport's declared failure mode, requests'
-    RequestException: that is the contract of Transport below, and a
-    transport that breaks it has a bug worth crashing the run over.
+    The predecessor is always our own published RSS, whatever the source's
+    upstream shape, so it is asked for with the RSS headers.
     """
     try:
-        return transport(address(feed_meta, source))
-    except requests.RequestException:
+        status, body = get(address(feed_meta, source), rss_headers())
+    except TransportError:
         return None
+    return body if status < 400 else None

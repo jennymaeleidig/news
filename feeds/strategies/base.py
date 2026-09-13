@@ -1,10 +1,11 @@
-"""The shape every strategy module implements, and the request headers the
-RSS- and JSON-shaped strategies send.
+"""The shape every strategy module implements, and the browser header sets
+our outbound requests send.
 
 A **Strategy** is built from one source's `[sources.strategy]` block. It owns
 that source's request headers, its parser (`parse(bytes)`), and its filter
-(`filter(items)`), and it performs no I/O: `feeds.fetch` makes the one request
-and hands the bytes over.
+(`filter(items)`), and it performs no I/O: `feeds.transport` makes the
+request and `feeds.fetch` retries it and hands the bytes over. (The published
+store's read sends the RSS set too — its predecessor is our own feed.)
 """
 
 from __future__ import annotations

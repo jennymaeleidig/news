@@ -3,12 +3,14 @@ absolute URL, its on-disk home, and the read that merges against it."""
 
 from pathlib import Path
 
-import requests
+import pytest
 
 from feeds import store
 from feeds.registry import FeedMeta, Source
+from feeds.strategies.base import rss_headers
+from feeds.transport import TransportError
 
-from conftest import hosted_source
+from conftest import ScriptedTransport, hosted_source
 
 SITE = "https://jennymaeleidig.github.io/news-digest-agent"
 
@@ -48,18 +50,19 @@ def test_write_creates_the_feed_directory_when_absent(registry, tmp_path):
 
 
 def test_read_returns_the_published_bytes(registry):
-    seen = []
+    get = ScriptedTransport((200, b"<rss>published</rss>"))
 
-    def transport(url):
-        seen.append(url)
-        return b"<rss>published</rss>"
-
-    assert store.read(hosted_source(registry, "reddit-rva"), registry.feed, transport) == b"<rss>published</rss>"
-    assert seen == [f"{SITE}/feeds/reddit-rva.xml"]
+    assert store.read(hosted_source(registry, "reddit-rva"), registry.feed, get) == b"<rss>published</rss>"
+    # the predecessor is our own published RSS, so it is asked for as RSS
+    assert get.requests == [(f"{SITE}/feeds/reddit-rva.xml", rss_headers())]
 
 
-def test_read_returns_none_when_the_feed_is_missing_or_unreadable(registry):
-    def transport(url):
-        raise requests.ConnectionError("Pages unavailable")
+@pytest.mark.parametrize("unreadable", [
+    (404, b"not found"),                      # first publication: nothing there yet
+    (500, b"pages blew up"),
+    TransportError("Pages unavailable"),      # the request never came back
+])
+def test_read_returns_none_when_the_feed_is_missing_or_unreadable(registry, unreadable):
+    get = ScriptedTransport(unreadable)
 
-    assert store.read(hosted_source(registry, "reddit-rva"), registry.feed, transport) is None
+    assert store.read(hosted_source(registry, "reddit-rva"), registry.feed, get) is None

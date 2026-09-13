@@ -15,20 +15,23 @@
         and local diffs). Defaults to now, UTC.
 
 Every surface this prints is a `feeds.render` function; this module keeps
-argument handling, the file writes, and the console log.
+argument handling, the file writes, and the console log. It is also a
+composition root: the HTTP adapter and the real `sleep` are chosen here and
+passed down, never defaulted inside the pipeline.
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from feeds import fetch
 from feeds.publish import generate_site
 from feeds.registry import load
 from feeds.render import render_annotations, render_direct_table, render_job_summary
+from feeds.transport import requests_get
 
 
 def _parse_built_at(value: str | None) -> datetime:
@@ -62,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"direct table -> {path}")
         return 0
 
-    runs = generate_site(registry, args.out, built_at, fetch.http_get)
+    runs = generate_site(registry, args.out, built_at, requests_get, time.sleep)
     for run in runs:
         word = run.state.summary_word
         print(f"{run.source_id}: {word} ({run.item_count} items, lastBuildDate {run.last_build})")

@@ -4,8 +4,10 @@
 
 `tests/` is part of the repo and runs in `publish-feeds.yml` before any
 Pages publication — a red test blocks it. The suite is fully offline:
-no test ever touches the network; fetch-level behavior is exercised with
-fakes and golden files.
+no test ever touches the network. The HTTP call is a seam
+(`feeds.transport`), so fetch-level behavior — retry, backoff, status
+classification, request headers — runs against a scripted adapter, and the
+emitted bytes are pinned by golden files.
 
 Feed fixtures live at `tests/fixtures/<source-id>/` (an upstream snapshot
 plus the expected emitted `expected.xml`). They are refreshed manually,

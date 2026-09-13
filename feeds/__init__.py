@@ -1,10 +1,12 @@
 """feeds — publish RSS feeds for the sources in sources.toml.
 
 The pipeline is one direction: registry → fetch → transform → merge → emit →
-publish. `fetch` and `publish` own I/O (HTTP, writing files); `merge` and
-`emit` are pure and golden-file testable. The Transform stage is each
-source's **Strategy** filter: pure, bytes in → Items out, and owned by the
-strategy module that names the source's shape.
+publish. `transport` is the one HTTP call, injected by the composition root;
+`fetch` (retry and status classification), `store` (the predecessor read and
+the feed writes) and `publish` (the site files) own the rest of the I/O;
+`merge` and `emit` are pure and golden-file testable. The Transform stage is
+each source's **Strategy** filter: pure, bytes in → Items out, and owned by
+the strategy module that names the source's shape.
 
 The published site is the store (ADR-0004): each hosted feed merges the
 fresh upstream fetch against the feed currently published on Pages, so

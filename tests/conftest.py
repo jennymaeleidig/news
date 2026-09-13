@@ -1,8 +1,9 @@
 """Shared test helpers.
 
-The suite is fully offline: no test touches the network. Fetch-level
-behavior is covered with fakes (monkeypatching feeds.fetch) and committed
-fixtures run through the real parsing code path (each strategy's parse).
+The suite is fully offline: no test touches the network. The HTTP call is a
+seam (`feeds.transport.Get`), so tests queue `(status, body)` pairs and
+record the sleeps the retry policy asks for; committed fixtures run through
+the real parsing code path (each strategy's `parse`).
 """
 
 import sys
@@ -38,6 +39,42 @@ def make_item(
 def hosted_source(registry, source_id: str):
     """The one hosted source with this id — fixtures are per source id."""
     return next(s for s in registry.hosted() if s.id == source_id)
+
+
+class ScriptedTransport:
+    """The `get` seam: a queue of `(status, body)` pairs, or exceptions to
+    raise, plus every `(url, headers)` it was asked for.
+
+    The queue is finite on purpose: a call past the end fails, so a test can
+    script exactly the attempts it expects and any extra retry is a loud
+    failure rather than a silently different run.
+    """
+
+    def __init__(self, *responses):
+        self._queued = list(responses)
+        self.requests: list[tuple[str, dict]] = []
+
+    def __call__(self, url: str, headers: dict) -> tuple[int, bytes]:
+        self.requests.append((url, headers))
+        if not self._queued:
+            raise AssertionError(
+                f"unscripted request #{len(self.requests)} to {url!r}: the "
+                "test scripted every attempt it expected"
+            )
+        response = self._queued.pop(0)
+        if isinstance(response, BaseException):
+            raise response
+        return response
+
+
+class RecordedSleep:
+    """The `sleep` seam: records what the retry policy would have waited."""
+
+    def __init__(self):
+        self.calls: list[float] = []
+
+    def __call__(self, seconds: float) -> None:
+        self.calls.append(seconds)
 
 
 @pytest.fixture

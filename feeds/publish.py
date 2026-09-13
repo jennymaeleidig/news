@@ -27,6 +27,7 @@ from feeds.model import FetchOutcome, Item
 from feeds.render import render_index, render_opml
 from feeds.run import RunState, SourceRun
 from feeds.strategies.rss import last_build_date
+from feeds.transport import Get, Sleep
 
 
 def run_source(
@@ -74,14 +75,14 @@ def run_source(
 
 
 def generate_site(registry, out_dir: str | Path, built_at: datetime,
-                  transport: store.Transport) -> list[SourceRun]:
+                  get: Get, sleep: Sleep) -> list[SourceRun]:
     """Run every hosted source and write the full site: feeds/, index, OPML."""
     out = Path(out_dir)
 
     runs: list[SourceRun] = []
     for source in registry.hosted():
-        upstream = fetch.fetch(source)
-        predecessor = store.read(source, registry.feed, transport)
+        upstream = fetch.fetch(source, get, sleep)
+        predecessor = store.read(source, registry.feed, get)
         xml, run = run_source(source, registry.feed, built_at, upstream, predecessor)
         store.write(out, source, xml)
         runs.append(run)
