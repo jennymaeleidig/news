@@ -80,12 +80,16 @@ diff — see `CODING_STANDARDS.md`.
   The Job Summary table shows per-source state and `lastBuildDate`.
 - **No secrets.** The digest era's API keys are gone; every upstream is
   keyless.
-- **Enabling Pages** (first publication): Settings → Pages → Build and
-  deployment → Source: **GitHub Actions**.
+- **Bringing the site up (or back up):** run
+  [`scripts/setup-pages.sh`](scripts/setup-pages.sh) — a 5-stage wizard that
+  enables Pages (Source: **GitHub Actions**), pushes `main`, watches the
+  first run, checks the live OPML, and re-enables the workflow if GitHub
+  disabled it. Idempotent, so re-running is safe. By hand: Settings → Pages
+  → Build and deployment → Source: **GitHub Actions**, then push.
 - **Scheduled workflows auto-disable after 60 days of no repo activity.**
-  If the feeds go stale and Actions shows the workflow disabled, re-enable
-  it from the workflow page (or make any commit); the next run catches the
-  feeds back up.
+  That's stage 5 of the wizard; by hand, enable the workflow from its
+  Actions page (or make any commit). The next run catches the feeds back up
+  by merging upstream against the feeds already published.
 
 ## License
 
