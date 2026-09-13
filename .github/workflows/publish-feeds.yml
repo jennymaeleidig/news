@@ -16,8 +16,8 @@ permissions:
   pages: write
   id-token: write
 
-# Runs queue instead of overlapping: two concurrent deploys would read-merge-
-# deploy the published feeds and lose one run's items.
+# Runs queue instead of overlapping: two concurrent runs would read-merge-
+# publish the published feeds and lose one run's items.
 concurrency:
   group: publish-feeds
   cancel-in-progress: false

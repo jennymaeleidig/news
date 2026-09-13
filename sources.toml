@@ -233,9 +233,11 @@ name = "json_api"
 item = "$"
 title = "paper.title"
 link = "paper.id"
+link_prefix = "https://huggingface.co/papers/"
 date = "paper.submittedOnDailyAt"
 summary = "paper.summary"
 upvotes = "paper.upvotes"
+description = "▲ {upvotes} — {summary}"
 
 [[sources]]
 id = "reddit-localllama"

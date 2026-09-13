@@ -3,7 +3,7 @@
 ## Tests are committed and run in CI
 
 `tests/` is part of the repo and runs in `publish-feeds.yml` before any
-Pages deploy — a red test blocks publication. The suite is fully offline:
+Pages publication — a red test blocks it. The suite is fully offline:
 no test ever touches the network; fetch-level behavior is exercised with
 fakes and golden files.
 

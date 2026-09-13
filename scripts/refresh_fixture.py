@@ -8,10 +8,13 @@ never silently redefine what we consider correct output.
 
     PYTHONPATH=. python scripts/refresh_fixture.py <source-id> [--built-at ISO]
 
-Writes tests/fixtures/<source-id>/{upstream.xml,expected.xml}. expected.xml
-is produced by the exact test-pipeline path (parse_feed_bytes → transform →
-merge against no predecessor → emit), with the clock frozen at --built-at
-so the golden only changes when behavior or upstream content changes.
+Writes tests/fixtures/<source-id>/{upstream.xml | upstream.json,expected.xml}.
+The snapshot is upstream's own response body, byte for byte (rss strategies
+land in upstream.xml, the json_api strategy in upstream.json), so the fixture
+test parses exactly what the source sent. expected.xml is produced by the
+exact test-pipeline path (the matching parse_*_bytes → transform → merge
+against no predecessor → emit), with the clock frozen at --built-at so the
+golden only changes when behavior or upstream content changes.
 """
 
 from __future__ import annotations
@@ -23,6 +26,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 FIXTURES = REPO / "tests" / "fixtures"
+SNAPSHOTS = {"json_api": "upstream.json"}
+DEFAULT_SNAPSHOT = "upstream.xml"
 
 
 def main() -> int:
@@ -31,8 +36,10 @@ def main() -> int:
     parser.add_argument("--built-at", default=None, help="freeze the clock (ISO 8601)")
     args = parser.parse_args()
 
+    import requests
+
     from feeds.emit import emit
-    from feeds.fetch import fetch
+    from feeds.fetch import fetch_bytes, parse_feed_bytes, parse_json_bytes
     from feeds.merge import merge
     from feeds.registry import load
     from feeds.transform import filter_items
@@ -49,9 +56,20 @@ def main() -> int:
         else datetime.now(timezone.utc)
     )
 
-    outcome = fetch.fetch(source)
+    strategy = source.strategy.name if source.strategy else "rss"
+    try:
+        raw = fetch_bytes(source)                       # upstream's own bytes
+    except requests.RequestException as e:
+        print(f"fetch failed: {e}", file=sys.stderr)
+        return 1
+
+    outcome = (
+        parse_json_bytes(raw, source.strategy)
+        if strategy == "json_api"
+        else parse_feed_bytes(raw)
+    )
     if not outcome.ok:
-        print(f"fetch failed: {outcome.error}", file=sys.stderr)
+        print(f"parse failed: {outcome.error}", file=sys.stderr)
         return 1
     if outcome.note:
         print(f"note: {outcome.note}")
@@ -61,41 +79,20 @@ def main() -> int:
     xml = emit(source.name, source.site,
                registry.feed.channel_description(source), built_at, merged)
 
+    snapshot = SNAPSHOTS.get(strategy, DEFAULT_SNAPSHOT)
     out = FIXTURES / source.id
     out.mkdir(parents=True, exist_ok=True)
-    # The snapshot is written as normalized RSS re-serialized from the parsed
-    # items, not as upstream's raw bytes: the golden path needs a snapshot
-    # that parses to the same items, and feedparser accepts any well-formed
-    # spelling. NOTE: CODING_STANDARDS.md calls the fixture an "upstream
-    # snapshot" so a hostile upstream cannot silently rewrite it — that holds
-    # for the committed fixtures (upstream bytes parsed directly by the test),
-    # but not for what a refresh writes; see ticket 13's deviations.
-    snapshot = emit_snapshot(source, registry, outcome, built_at)
-    (out / "upstream.xml").write_bytes(snapshot)
+    for stale in sorted({"upstream.xml", "upstream.json"} - {snapshot}):
+        if (out / stale).exists():                      # strategy changed: drop the old shape
+            (out / stale).unlink()
+
+    (out / snapshot).write_bytes(raw)
     (out / "expected.xml").write_bytes(xml)
-    print(f"wrote {out}/upstream.xml ({len(snapshot)} bytes)")
+    print(f"wrote {out}/{snapshot} ({len(raw)} bytes, upstream's own response)")
     print(f"wrote {out}/expected.xml ({len(xml)} bytes, {len(merged)} items)")
     print("review the diff before committing:")
     print(f"  git diff tests/fixtures/{source.id}/")
     return 0
-
-
-def emit_snapshot(source, registry, outcome, built_at):
-    """A normalized snapshot of the upstream fetch: same items, our spelling.
-
-    The raw upstream bytes can't be reproduced on refresh (no storage), and
-    feedparser accepts any well-formed spelling anyway — what the golden
-    path needs is items that parse identically. Emitting them as RSS gives a
-    diffable, version-controlled snapshot.
-    """
-    from feeds.emit import emit
-    return emit(
-        f"[upstream] {source.name}",
-        source.site or registry.feed.link,
-        f"normalized upstream snapshot for {source.id}",
-        built_at,
-        outcome.items,
-    )
 
 
 if __name__ == "__main__":

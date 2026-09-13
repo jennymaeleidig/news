@@ -57,9 +57,10 @@ never fetched here.
 _Avoid_: health, liveness, status
 
 **Transform**:
-A hosted source's named strategy and parameters for shaping upstream items
-into feed items — pure filtering and field mapping, never the network.
-_Avoid_: filter, conversion, strategy
+A hosted source's named strategy (`topic_filter`, `passthrough`,
+`json_api`) and its parameters for shaping upstream items into feed items
+— pure filtering and field mapping, never the network.
+_Avoid_: filter, conversion
 
 **Publication**:
 The stage that renders and ships the published site: each hosted feed

@@ -32,7 +32,7 @@ registry → fetch → transform → merge → emit → publish
   older than 30 days drop out, newest first (guid ascending on ties),
   capped at 100 items.
 - **emit** — hand-rolled RSS 2.0 on the stdlib, deterministic for goldens.
-- **publish** — the site deploys to GitHub Pages as an artifact.
+- **publish** — the site is published to GitHub Pages as an artifact.
 
 **The published site is the store.** There is no database and no state
 directory: each run merges against the live published feed, so state lives
@@ -59,7 +59,7 @@ python -m feeds gen --direct-table docs/direct-feeds.md
 ```
 
 (Table rendering is offline — it reads the registry only.) The next push
-deploys the updated site.
+publishes the updated site.
 
 ## Tests
 
@@ -68,7 +68,7 @@ python -m pip install -r requirements.txt -r requirements-dev.txt
 python -m pytest
 ```
 
-The suite is offline and runs in CI before any deploy. Feed fixtures live
+The suite is offline and runs in CI before the site is published. Feed fixtures live
 in `tests/fixtures/<source-id>/`; refresh them manually with
 `PYTHONPATH=. python scripts/refresh_fixture.py <source-id>` and review the
 diff — see `CODING_STANDARDS.md`.
@@ -80,7 +80,7 @@ diff — see `CODING_STANDARDS.md`.
   The Job Summary table shows per-source state and `lastBuildDate`.
 - **No secrets.** The digest era's API keys are gone; every upstream is
   keyless.
-- **Enabling Pages** (first deploy): Settings → Pages → Build and
+- **Enabling Pages** (first publication): Settings → Pages → Build and
   deployment → Source: **GitHub Actions**.
 - **Scheduled workflows auto-disable after 60 days of no repo activity.**
   If the feeds go stale and Actions shows the workflow disabled, re-enable

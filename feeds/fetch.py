@@ -19,6 +19,7 @@ HTTP concern, so it lives here: the published site is the store
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from datetime import datetime, timezone
@@ -26,7 +27,7 @@ from datetime import datetime, timezone
 import feedparser
 import requests
 
-from feeds.model import FetchOutcome, Item, https_normalize, parse_published
+from feeds.model import FetchOutcome, Item, items_from_entries
 
 # Browser impersonation shared by every outbound request. Reddit 403s
 # non-browser agents; PBS 202-empties some impersonation strings but
@@ -86,22 +87,32 @@ def _headers(extra_user_agent: str | None = None) -> dict:
     return {"User-Agent": ua, **_REQUEST_HEADERS}
 
 
-def _entry_description(entry) -> str:
-    """Verbatim upstream HTML — no stripping, no truncation.
+def _source_headers(source) -> dict:
+    """Request headers for a source: the RSS set, or the JSON set for a
+    json_api source."""
+    if source.strategy is not None and source.strategy.name == "json_api":
+        return {
+            "User-Agent": BROWSER_USER_AGENT,
+            "Accept": "application/json, text/plain, */*;q=0.5",
+            **{k: v for k, v in _REQUEST_HEADERS.items() if k != "Accept"},
+        }
+    return _headers()
 
-    The digest-era strip_html/1500-char snippet died with the digest;
-    the feed's reader renders the description, so it passes through as
-    the publisher wrote it (ElementTree escapes it at emit time).
+
+def fetch_bytes(source) -> bytes:
+    """GET a source's raw response body — the fixture-snapshot path.
+
+    A fixture must be upstream's own bytes (CODING_STANDARDS.md), so this
+    returns the body untouched and the caller parses it with the matching
+    parse_*_bytes, which is the same mapping the live path uses.
     """
-    if "content" in entry and entry.content:
-        return entry.content[0].get("value", "")
-    return entry.get("summary") or entry.get("description") or ""
+    return _fetch_response(source.url, _source_headers(source)).content
 
 
 def fetch_rss(source, strategy) -> FetchOutcome:
     """Fetch and parse an RSS/Atom upstream into Items."""
     try:
-        resp = _fetch_response(source.url, _headers())
+        resp = _fetch_response(source.url, _source_headers(source))
     except requests.HTTPError as e:
         status = e.response.status_code if e.response is not None else None
         return FetchOutcome(items=[], error=f"HTTP {status}" if status else f"fetch failed: {e}")
@@ -133,22 +144,7 @@ def parse_feed_bytes(data: bytes) -> FetchOutcome:
             f"{days}; channel lastBuildDate {rebuilt or 'unknown'}"
         )
 
-    items = []
-    for entry in parsed.entries:
-        title = (entry.get("title") or "").strip()
-        link = https_normalize((entry.get("link") or "").strip())
-        if not title or not link:
-            continue
-        guid = (entry.get("id") or link).strip()
-        published, published_raw = parse_published(entry)
-        items.append(Item(
-            title=title,
-            link=link,
-            guid=guid,
-            published=published,
-            published_raw=published_raw,
-            description=_entry_description(entry),
-        ))
+    items = items_from_entries(parsed.entries)
     return FetchOutcome(items=items, note=note)
 
 
@@ -166,27 +162,46 @@ def _dig(data, path: str):
 
 
 def fetch_json_api(source, strategy) -> FetchOutcome:
-    """Fetch a JSON API upstream and field-map entries to Items.
-
-    Field paths come from the registry's json_api strategy block. The
-    description is composed, not passed through: HF Daily Papers has no
-    feed-native description, so items render '▲ <upvotes> — <abstract>'.
-    """
-    params = strategy.params
+    """Fetch a JSON API upstream and hand the body to the parser."""
     try:
-        resp = _fetch_response(source.url, {
-            "User-Agent": BROWSER_USER_AGENT,
-            "Accept": "application/json, text/plain, */*;q=0.5",
-            **{k: v for k, v in _REQUEST_HEADERS.items() if k != "Accept"},
-        })
+        resp = _fetch_response(source.url, _source_headers(source))
     except requests.HTTPError as e:
         status = e.response.status_code if e.response is not None else None
         return FetchOutcome(items=[], error=f"HTTP {status}" if status else f"fetch failed: {e}")
     except requests.RequestException as e:
         return FetchOutcome(items=[], error=f"fetch failed: {e}")
+    return parse_json_bytes(resp.content, strategy)
 
+
+def _compose_description(entry, params: dict, fallback: str) -> str:
+    """Render the strategy's ``description`` template, else pass the summary.
+
+    ``{placeholders}`` name other strategy keys (which hold dot-paths), so
+    the template stays data: HF renders ``▲ {upvotes} — {summary}``. If any
+    placeholder resolves empty the plain summary wins — HF omits upvotes on
+    some papers and "▲  — abstract" reads worse than the abstract.
+    """
+    template = params.get("description")
+    if not template:
+        return fallback
+    values = {n: _dig(entry, params.get(n, "")) for n in re.findall(r"\{([^}]+)\}", template)}
+    if any(v in (None, "") for v in values.values()):
+        return fallback
+    return template.format(**{n: str(v) for n, v in values.items()})
+
+
+def parse_json_bytes(data: bytes, strategy) -> FetchOutcome:
+    """Parse a JSON API body into Items — the mapping both the live fetch
+    and committed JSON fixtures run through.
+
+    The strategy block carries the source's whole shape: dot-paths for
+    item/title/link/date/summary, an optional ``link_prefix`` (HF papers
+    have no absolute URL upstream), and an optional ``description``
+    template. Nothing about a particular API lives in this module.
+    """
+    params = strategy.params
     try:
-        payload = resp.json()
+        payload = json.loads(data)
     except ValueError as e:
         return FetchOutcome(items=[], error=f"invalid JSON: {e}")
 
@@ -200,9 +215,8 @@ def fetch_json_api(source, strategy) -> FetchOutcome:
         ref = _dig(entry, params["link"])
         if not title or not ref:
             continue
+        link = f"{params.get('link_prefix', '')}{ref}"
         summary = _dig(entry, params.get("summary", "")) or ""
-        upvotes = _dig(entry, params.get("upvotes", ""))
-        description = f"▲ {upvotes} — {summary}" if upvotes else summary
         raw_date = str(_dig(entry, params["date"]) or "")
         published = None
         if raw_date:
@@ -214,11 +228,11 @@ def fetch_json_api(source, strategy) -> FetchOutcome:
                     continue
         items.append(Item(
             title=str(title).strip(),
-            link=f"https://huggingface.co/papers/{ref}",
-            guid=f"https://huggingface.co/papers/{ref}",
+            link=link,
+            guid=link,
             published=published,
             published_raw=raw_date,
-            description=description,
+            description=_compose_description(entry, params, summary),
         ))
     return FetchOutcome(items=items)
 

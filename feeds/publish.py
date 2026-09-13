@@ -7,7 +7,7 @@ and never an empty feed. The predecessor's bytes are re-emitted unchanged
 lastBuildDate and the staleness badge — not a red X — is the signal. If no
 predecessor exists either (first publication with a dead upstream), a
 zero-item channel is emitted — with no lastBuildDate, since there has
-never been a successful fetch to stamp — so the deploy stays complete.
+never been a successful fetch to stamp — so the publication stays complete.
 
 The published site is the store (ADR-0004): the predecessor is fetched
 from the live Pages URL derived from [feed].link, so state lives in the
@@ -26,7 +26,10 @@ from feeds.model import Item
 
 
 @dataclass
-class SourceStatus:
+class SourceRun:
+    """One source's outcome for a run: its freshness state, what it
+    published, and the failure note when there was one."""
+
     source_id: str
     state: str            # "ok" | "stale" | "failed"
     item_count: int = 0
@@ -40,7 +43,7 @@ def public_url(feed_meta, source) -> str:
     return f"{feed_meta.link.rstrip('/')}/feeds/{source.id}.xml"
 
 
-def run_source(source, feed_meta, built_at: datetime) -> tuple[bytes, SourceStatus]:
+def run_source(source, feed_meta, built_at: datetime) -> tuple[bytes, SourceRun]:
     """Fetch → transform → merge → emit for one hosted source.
     Returns the feed bytes and a status for reporting."""
     site_link = source.site or feed_meta.link
@@ -55,14 +58,14 @@ def run_source(source, feed_meta, built_at: datetime) -> tuple[bytes, SourceStat
             # An unparseable predecessor stamp is reported as unknown ("")
             # rather than faked with this run's clock.
             stamp = fetch.parse_last_build_date(predecessor) or ""
-            return predecessor, SourceStatus(
+            return predecessor, SourceRun(
                 source_id=source.id, state="stale",
                 error=outcome.error, last_build=stamp,
                 note="upstream fetch failed; predecessor re-emitted unchanged",
             )
         xml = emit_mod.emit(source.name, site_link, channel_description,
                             last_build=None, items=[])
-        return xml, SourceStatus(
+        return xml, SourceRun(
             source_id=source.id, state="failed",
             error=outcome.error, last_build="",
             note="upstream fetch failed and no predecessor is published; "
@@ -74,21 +77,21 @@ def run_source(source, feed_meta, built_at: datetime) -> tuple[bytes, SourceStat
     predecessor_items: list[Item] = merge.parse_predecessor(predecessor) if predecessor else []
     merged = merge.merge(items, predecessor_items, built_at)
     xml = emit_mod.emit(source.name, site_link, channel_description, built_at, merged)
-    return xml, SourceStatus(
+    return xml, SourceRun(
         source_id=source.id, state="ok",
         item_count=len(merged), last_build=emit_mod.rfc2822(built_at),
         note=outcome.note or "",
     )
 
 
-def generate_site(registry, out_dir: str | Path, built_at: datetime) -> list[SourceStatus]:
+def generate_site(registry, out_dir: str | Path, built_at: datetime) -> list[SourceRun]:
     """Run every hosted source and write the full site: feeds/, index, OPML."""
     from feeds import render
 
     out = Path(out_dir)
     (out / "feeds").mkdir(parents=True, exist_ok=True)
 
-    statuses: list[SourceStatus] = []
+    statuses: list[SourceRun] = []
     for source in registry.hosted():
         xml, status = run_source(source, registry.feed, built_at)
         (out / "feeds" / f"{source.id}.xml").write_bytes(xml)

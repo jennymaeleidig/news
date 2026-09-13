@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 
 import feedparser
 
-from feeds.model import Item, parse_published
+from feeds.model import Item, items_from_entries
 
 MAX_ITEMS = 100
 MAX_AGE_DAYS = 30
@@ -61,27 +61,10 @@ def merge(
 
 
 def parse_predecessor(data: bytes) -> list[Item]:
-    """Items from the currently-published feed (our own earlier output)."""
-    parsed = feedparser.parse(data)
-    items = []
-    for entry in parsed.entries:
-        title = (entry.get("title") or "").strip()
-        link = (entry.get("link") or "").strip()
-        if not title or not link:
-            continue
-        guid = (entry.get("id") or link).strip()
-        published, published_raw = parse_published(entry)
-        description = ""
-        if "content" in entry and entry.content:
-            description = entry.content[0].get("value", "")
-        else:
-            description = entry.get("summary") or entry.get("description") or ""
-        items.append(Item(
-            title=title,
-            link=link,
-            guid=guid,
-            published=published,
-            published_raw=published_raw,
-            description=description,
-        ))
-    return items
+    """Items from the currently-published feed (our own earlier output).
+
+    Same mapping as a live fetch (feeds.model.items_from_entries): the
+    predecessor is our own emission, so normalizing its links is a no-op
+    and both directions stay identical by construction.
+    """
+    return items_from_entries(feedparser.parse(data).entries)

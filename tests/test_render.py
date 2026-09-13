@@ -5,23 +5,23 @@ from xml.etree import ElementTree as ET
 
 from xml.sax.saxutils import escape
 
-from feeds.publish import SourceStatus
+from feeds.publish import SourceRun
 from feeds.render import render_direct_table, render_index, render_opml
 
 from conftest import BUILT_AT
 
-STATUSES = [
-    SourceStatus(source_id="arxiv-cl", state="ok", item_count=12,
+RUNS = [
+    SourceRun(source_id="arxiv-cl", state="ok", item_count=12,
                  last_build="Sun, 13 Sep 2026 12:00:00 +0000"),
-    SourceStatus(source_id="reddit-rva", state="stale", item_count=0,
+    SourceRun(source_id="reddit-rva", state="stale", item_count=0,
                  last_build="Sun, 13 Sep 2026 11:02:33 +0000", error="HTTP 403"),
-    SourceStatus(source_id="hf-daily-papers", state="failed", item_count=0,
+    SourceRun(source_id="hf-daily-papers", state="failed", item_count=0,
                  last_build="Sun, 13 Sep 2026 12:00:00 +0000", error="HTTP 500"),
-    SourceStatus(source_id="arxiv-se", state="ok", item_count=3,
+    SourceRun(source_id="arxiv-se", state="ok", item_count=3,
                  last_build="Sun, 13 Sep 2026 12:00:00 +0000"),
-    SourceStatus(source_id="reddit-localllama", state="ok", item_count=9,
+    SourceRun(source_id="reddit-localllama", state="ok", item_count=9,
                  last_build="Sun, 13 Sep 2026 12:00:00 +0000"),
-    SourceStatus(source_id="richmond-times-dispatch", state="ok", item_count=40,
+    SourceRun(source_id="richmond-times-dispatch", state="ok", item_count=40,
                  last_build="Sun, 13 Sep 2026 12:00:00 +0000"),
 ]
 
@@ -51,7 +51,7 @@ def test_direct_table_lists_all_direct_sources(registry):
 
 
 def test_index_renders_both_sections_with_freshness(registry):
-    html = render_index(registry, STATUSES, BUILT_AT)
+    html = render_index(registry, RUNS, BUILT_AT)
     assert "Hosted feeds · generated here" in html
     assert "Direct sources · subscribe to these yourself" in html
     assert html.count('data-built="') == 6                    # every hosted row stamped
@@ -65,7 +65,7 @@ def test_hosted_rows_explain_the_hosting(registry):
     # The "Why it's here" cell carries `why` (what forces the hosting), so a
     # hosted source with no note still explains itself. It used to render
     # `note`, which left the Reddit rows blank under that header.
-    html = render_index(registry, STATUSES, BUILT_AT)
+    html = render_index(registry, RUNS, BUILT_AT)
     for hosted in registry.hosted():
         assert escape(hosted.why) in html
     rva = [s for s in registry.hosted() if s.id == "reddit-rva"][0]
@@ -73,7 +73,7 @@ def test_hosted_rows_explain_the_hosting(registry):
 
 
 def test_index_has_no_digest_era_strings(registry):
-    html = render_index(registry, STATUSES, BUILT_AT)
+    html = render_index(registry, RUNS, BUILT_AT)
     # "digest" survives only inside the repo/site name news-digest-agent.
     for dead in ("curator", "openrouter", "resend", "category", "tier"):
         assert dead not in html.lower()

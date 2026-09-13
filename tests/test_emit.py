@@ -3,8 +3,10 @@ pubDate normalization — and the committed fixture golden."""
 
 from datetime import datetime, timezone
 
+import pytest
+
 from feeds.emit import emit
-from feeds.fetch import parse_feed_bytes
+from feeds.fetch import parse_feed_bytes, parse_json_bytes
 from feeds.merge import merge
 from feeds.publish import run_source
 from feeds.transform import filter_items
@@ -63,21 +65,30 @@ def test_last_build_date_omitted_when_no_fetch_ever_succeeded():
     assert b"<channel>" in xml                      # still a valid empty channel
 
 
-# --- fixture golden: upstream snapshot through the real pipeline ---
+# --- fixture goldens: recorded upstream bytes through the real pipeline ---
 
-def test_fixture_roundtrip():
-    source = FIXTURES / "reddit-rva"
-    from feeds.registry import load
-    registry = load("sources.toml")
-    rva = [s for s in registry.hosted() if s.id == "reddit-rva"][0]
+def _fixtures():
+    return sorted(p.name for p in FIXTURES.iterdir() if p.is_dir())
 
-    upstream = (source / "upstream.xml").read_bytes()
-    outcome = parse_feed_bytes(upstream)
-    assert outcome.ok and outcome.note is None
 
-    items = filter_items(rva, outcome.items)                # passthrough: identity
+@pytest.mark.parametrize("source_id", _fixtures())
+def test_fixture_roundtrip(source_id, registry):
+    """Upstream's own bytes in, the committed expected.xml out — the same
+    mapping the live run uses, minus the network."""
+    fixture = FIXTURES / source_id
+    source = [s for s in registry.hosted() if s.id == source_id][0]
+
+    snapshot = fixture / "upstream.json"
+    if snapshot.exists():
+        outcome = parse_json_bytes(snapshot.read_bytes(), source.strategy)
+    else:
+        snapshot = fixture / "upstream.xml"
+        outcome = parse_feed_bytes(snapshot.read_bytes())
+    assert outcome.ok, outcome.error
+
+    items = filter_items(source, outcome.items)
     merged = merge(items, [], BUILT_AT)                     # first run: no predecessor
-    xml = emit(rva.name, rva.site,
-               registry.feed.channel_description(rva), BUILT_AT, merged)
+    xml = emit(source.name, source.site,
+               registry.feed.channel_description(source), BUILT_AT, merged)
 
-    assert xml == (source / "expected.xml").read_bytes()
+    assert xml == (fixture / "expected.xml").read_bytes()

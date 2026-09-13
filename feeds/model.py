@@ -67,8 +67,49 @@ def https_normalize(url: str) -> str:
 
     Some feeds publish ``http://`` permalinks even though the https origin
     serves the same page. Normalizing at fetch time keeps a source's item
-    URLs on one scheme so the merge's guid matching sees one spelling.
+    URLs on one scheme, which matters because a guid falls back to the link
+    when upstream omits one: an upstream flipping schemes would otherwise
+    change every guid and make readers re-surface old items as new
+    (ticket 09's stable-guid rule). This is the sole deliberate exception
+    to ticket 05's verbatim principle.
     """
     if url.startswith("http://"):
         return "https://" + url[len("http://"):]
     return url
+
+
+def entry_description(entry) -> str:
+    """Verbatim upstream HTML — no stripping, no truncation.
+
+    The digest-era strip_html/1500-char snippet died with the digest; the
+    reader renders the description, so it passes through as the publisher
+    wrote it (ElementTree escapes it at emit time).
+    """
+    if "content" in entry and entry.content:
+        return entry.content[0].get("value", "")
+    return entry.get("summary") or entry.get("description") or ""
+
+
+def items_from_entries(entries) -> list[Item]:
+    """Map feedparser entries to Items.
+
+    One mapping for both directions: a live upstream fetch and reading back
+    our own published feed (the merge's predecessor). Entries without a
+    title or link are unusable and dropped.
+    """
+    items = []
+    for entry in entries:
+        title = (entry.get("title") or "").strip()
+        link = https_normalize((entry.get("link") or "").strip())
+        if not title or not link:
+            continue
+        published, published_raw = parse_published(entry)
+        items.append(Item(
+            title=title,
+            link=link,
+            guid=(entry.get("id") or link).strip(),
+            published=published,
+            published_raw=published_raw,
+            description=entry_description(entry),
+        ))
+    return items
