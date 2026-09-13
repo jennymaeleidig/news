@@ -57,6 +57,21 @@ last-known-good is being re-served. Direct sources have none — they are
 never fetched here.
 _Avoid_: health, liveness, status
 
+**Run**:
+One hosted source's result within one generation: its **Run state**, the
+item count it published, the emitted feed's lastBuildDate (the
+**Freshness** stamp), and any error or note.
+_Avoid_: job, task, execution
+
+**Run state**:
+A source's three-valued outcome for one run — `ok` (upstream fetched),
+`stale` (fetch failed, predecessor re-emitted unchanged), or `failed`
+(fetch failed with nothing to re-emit either). It is the machine-readable
+spelling of **Freshness**: the one word the console line, the Job Summary
+row, and the annotation all spell (`summary_word`). The index badge marks
+`failed` server-side and ages every other state from the emitted stamp.
+_Avoid_: status, health, result code
+
 **Strategy**:
 A hosted source's named shape (`topic_filter`, `passthrough`, `json_api`):
 its request headers, its parser, its filter, and its parameters. One

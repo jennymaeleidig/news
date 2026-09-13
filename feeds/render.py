@@ -1,11 +1,14 @@
 """Render the human surfaces from the registry: the Pages index, the OPML
-file, and the direct-feeds markdown table.
+file, the direct-feeds markdown table, and the two CI surfaces — the Job
+Summary table and the `::warning::` annotations.
 
 Layout is ticket 07's variant A: two stacked sections — hosted feeds (with
 a freshness column) on top, direct sources (with the URL to paste into a
 reader) beneath. Freshness is stamped server-side (data-built) and rendered
-client-side by ~10 lines of JS, so a frozen page ages visibly; a stamp
-older than 3 hours turns the badge stale (ticket 11).
+client-side by a few lines of JS, so a frozen page ages visibly; a stamp
+older than 3 hours turns the badge stale (ticket 11). The failed badge
+marker, the summary word and the annotation all read
+`feeds.run.RunState`, so they cannot drift apart.
 """
 
 from __future__ import annotations
@@ -19,6 +22,7 @@ from xml.sax.saxutils import escape
 
 from feeds import store
 from feeds.emit import rfc2822
+from feeds.run import RunState, SourceRun
 
 
 def _hostname(url: str) -> str:
@@ -29,7 +33,7 @@ def _hostname(url: str) -> str:
 
 
 def _iso_stamp(rfc2822: str) -> str:
-    """ISO 8601 spelling of a status stamp for the JS <code>Date.parse</code>."""
+    """ISO 8601 spelling of a Freshness stamp for the JS <code>Date.parse</code>."""
     try:
         return parsedate_to_datetime(rfc2822).isoformat()
     except (TypeError, ValueError):
@@ -59,31 +63,31 @@ _CSS = """
   .note { color:var(--mut); font-size:13px; }
 """
 
-_FRESHNESS_JS = """
-  (function () {
-    function stale(el) {
+_FRESHNESS_JS = f"""
+  (function () {{
+    function stale(el) {{
       el.classList.remove("fresh");
       el.classList.add("stale");
       el.title = "upstream fetch failing — predecessor re-emitted";
-    }
-    document.querySelectorAll("span[data-built]").forEach(function (el) {
-      if (el.dataset.state === "failed") { el.textContent = "fetch failed"; stale(el); return; }
+    }}
+    document.querySelectorAll("span[data-built]").forEach(function (el) {{
+      if (el.dataset.state === "{RunState.FAILED}") {{ el.textContent = "fetch failed"; stale(el); return; }}
       var t = Date.parse(el.dataset.built);
-      if (isNaN(t)) { el.textContent = "unknown"; stale(el); return; }
+      if (isNaN(t)) {{ el.textContent = "unknown"; stale(el); return; }}
       var mins = (Date.now() - t) / 60000;
       el.textContent = mins < 90 ? Math.max(1, Math.round(mins)) + " min ago"
                      : mins < 2880 ? Math.round(mins / 60) + " hours ago"
                      : Math.round(mins / 1440) + " days ago";
       if (mins > 180) stale(el);  // stale only once older than 3 hours
-    });
-  })();
+    }});
+  }})();
 """
 
 
-def _freshness_span(status) -> str:
-    if status.state == "failed":
-        return '<span class="tag stale" data-built="" data-state="failed"></span>'
-    iso = _iso_stamp(status.last_build).replace('"', "&quot;")
+def _freshness_span(run: SourceRun) -> str:
+    if run.state is RunState.FAILED:
+        return f'<span class="tag stale" data-built="" data-state="{RunState.FAILED}"></span>'
+    iso = _iso_stamp(run.last_build).replace('"', "&quot;")
     return f'<span class="tag fresh" data-built="{iso}"></span>'
 
 
@@ -94,12 +98,12 @@ def _site_link(site: str) -> str:
     return f'<a href="{escape(site)}">{escape(host or site)}</a>'
 
 
-def render_index(registry, statuses, built_at: datetime) -> str:
-    by_id = {s.source_id: s for s in statuses}
+def render_index(registry, runs: list[SourceRun], built_at: datetime) -> str:
+    by_id = {run.source_id: run for run in runs}
 
     hosted_rows = []
     for source in registry.hosted():
-        status = by_id[source.id]
+        run = by_id[source.id]
         feed_href = store.address(registry.feed, source)
         name_cell = (
             f'<a href="{escape(feed_href)}"><b>{escape(source.name)}</b></a><br>'
@@ -110,7 +114,7 @@ def render_index(registry, statuses, built_at: datetime) -> str:
             f"<td>{name_cell}</td>"
             f"<td>{_site_link(source.site)}</td>"
             f"<td>{escape(source.why) if source.why else ''}</td>"
-            f"<td>{_freshness_span(status)}</td>"
+            f"<td>{_freshness_span(run)}</td>"
             "</tr>"
         )
 
@@ -172,9 +176,6 @@ def render_opml(registry, built_at: datetime) -> bytes:
     return ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + body_xml + "\n").encode("utf-8")
 
 
-
-
-
 def render_direct_table(registry) -> str:
     rows = []
     for source in registry.direct():
@@ -200,3 +201,58 @@ python -m feeds gen --direct-table docs/direct-feeds.md
 |--------|------|---------------|----------|
 {table}
 """
+
+
+# --- the CI surfaces ------------------------------------------------------
+
+_SUMMARY_HEADER = (
+    "| Feed | State | Items | lastBuildDate | Note |\n"
+    "|------|-------|-------|---------------|------|\n"
+)
+
+
+def _cell(text: str) -> str:
+    """Keep a value inside one markdown table cell: no raw pipe, no newline."""
+    return text.replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+
+
+def render_job_summary(runs: list[SourceRun], built_at: datetime) -> str:
+    """The Actions Job Summary: one markdown row per source.
+
+    The state cell is `RunState.summary_word` — the same word the console log
+    prints — so the two surfaces cannot disagree.
+    """
+    lines = [f"Fetched at {built_at.isoformat()}\n", "\n", _SUMMARY_HEADER]
+    lines += [
+        f"| {_cell(run.source_id)} | {run.state.summary_word} | {run.item_count} "
+        f"| {_cell(run.last_build)} | {_cell(run.error or run.note)} |\n"
+        for run in runs
+    ]
+    return "".join(lines)
+
+
+def _escape_annotation_body(text: str) -> str:
+    """Escape a workflow-command message body (D9).
+
+    GitHub Actions reads annotation bodies until the line ends, so an
+    unescaped LF truncates the message or injects a second command. The
+    escapes are from actions/toolkit's `escapeData`: `%` first, since the
+    others introduce a `%`.
+    """
+    return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def render_annotations(runs: list[SourceRun]) -> list[str]:
+    """The `::warning::` lines for this run's errored sources.
+
+    The bare, property-less command form is kept; only the message body is
+    escaped, so a `%` or a newline in an error keeps the annotation intact.
+    """
+    lines = []
+    for run in runs:
+        if not run.error:
+            continue
+        word = run.state.summary_word
+        body = f"source {run.source_id}: {run.error} ({word})"
+        lines.append(f"::warning::{_escape_annotation_body(body)}")
+    return lines

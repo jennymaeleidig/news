@@ -68,7 +68,7 @@ def main() -> int:
     # The expected golden comes from the same assembly the cron runs; the only
     # difference is where the upstream bytes came from (this live fetch, which
     # also records the snapshot).
-    xml, status = run_source(source, registry.feed, built_at, outcome, predecessor=None)
+    xml, run = run_source(source, registry.feed, built_at, outcome, predecessor=None)
 
     snapshot = source.strategy.snapshot_filename
     out = FIXTURES / source.id
@@ -80,7 +80,7 @@ def main() -> int:
     (out / snapshot).write_bytes(raw)
     (out / "expected.xml").write_bytes(xml)
     print(f"wrote {out}/{snapshot} ({len(raw)} bytes, upstream's own response)")
-    print(f"wrote {out}/expected.xml ({len(xml)} bytes, {status.item_count} items)")
+    print(f"wrote {out}/expected.xml ({len(xml)} bytes, {run.item_count} items)")
     print("review the diff before committing:")
     print(f"  git diff tests/fixtures/{source.id}/")
     return 0
