@@ -63,12 +63,13 @@ def main() -> int:
 
     out = FIXTURES / source.id
     out.mkdir(parents=True, exist_ok=True)
-    # The upstream snapshot is the raw fetch: re-serialize? No — for RSS we
-    # can't reproduce upstream bytes without keeping the response, so we
-    # snapshot what feedparser consumed via a fresh fetch. For the golden
-    # path the snapshot and the parse must agree, so we write the parsed
-    # items back out as a normalized RSS snapshot instead of pretending we
-    # kept the original bytes.
+    # The snapshot is written as normalized RSS re-serialized from the parsed
+    # items, not as upstream's raw bytes: the golden path needs a snapshot
+    # that parses to the same items, and feedparser accepts any well-formed
+    # spelling. NOTE: CODING_STANDARDS.md calls the fixture an "upstream
+    # snapshot" so a hostile upstream cannot silently rewrite it — that holds
+    # for the committed fixtures (upstream bytes parsed directly by the test),
+    # but not for what a refresh writes; see ticket 13's deviations.
     snapshot = emit_snapshot(source, registry, outcome, built_at)
     (out / "upstream.xml").write_bytes(snapshot)
     (out / "expected.xml").write_bytes(xml)

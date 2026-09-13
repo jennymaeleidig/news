@@ -73,7 +73,7 @@ _FRESHNESS_JS = """
       el.textContent = mins < 90 ? Math.max(1, Math.round(mins)) + " min ago"
                      : mins < 2880 ? Math.round(mins / 60) + " hours ago"
                      : Math.round(mins / 1440) + " days ago";
-      if (mins >= 180) stale(el);  // stale after 3 hours
+      if (mins > 180) stale(el);  // stale only once older than 3 hours
     });
   })();
 """
@@ -103,13 +103,13 @@ def render_index(registry, statuses, built_at: datetime) -> str:
         feed_href = f"{feed_base}/feeds/{source.id}.xml"
         name_cell = (
             f'<a href="{escape(feed_href)}"><b>{escape(source.name)}</b></a><br>'
-            f'<span class="url">/feeds/{escape(source.id)}.xml</span>'
+            f'<span class="url">{escape(source.feed_url)}</span>'
         )
         hosted_rows.append(
             "<tr>"
             f"<td>{name_cell}</td>"
             f"<td>{_site_link(source.site)}</td>"
-            f"<td>{escape(source.note) if source.note else ''}</td>"
+            f"<td>{escape(source.why) if source.why else ''}</td>"
             f"<td>{_freshness_span(status)}</td>"
             "</tr>"
         )

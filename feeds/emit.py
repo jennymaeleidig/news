@@ -6,9 +6,11 @@ dates cover it. RSS 2.0 only: no Atom, no podcast namespaces (the one
 podcast source is direct).
 
 Serialization is deterministic given the channel meta, the items, and
-`built_at` — golden files pin it exactly. `built_at` is injected by the
+`last_build` — golden files pin it exactly. `last_build` is injected by the
 caller (tests pass a fixed stamp) so nothing normalizes timestamps after
-the fact.
+the fact. It is `None` only for a feed that has never had a successful
+upstream fetch: `lastBuildDate` is optional in RSS 2.0, and stamping such a
+feed with the current run would fake a fetch that never succeeded.
 """
 
 from __future__ import annotations
@@ -32,7 +34,7 @@ def emit(
     channel_title: str,
     channel_link: str,
     channel_description: str,
-    built_at: datetime,
+    last_build: datetime | None,
     items: list[Item],
 ) -> bytes:
     rss = ET.Element("rss", {"version": "2.0"})
@@ -40,7 +42,8 @@ def emit(
     ET.SubElement(channel, "title").text = channel_title
     ET.SubElement(channel, "link").text = channel_link
     ET.SubElement(channel, "description").text = channel_description
-    ET.SubElement(channel, "lastBuildDate").text = rfc2822(built_at)
+    if last_build is not None:
+        ET.SubElement(channel, "lastBuildDate").text = rfc2822(last_build)
     ET.SubElement(channel, "generator").text = GENERATOR
 
     for item in items:

@@ -3,6 +3,8 @@
 from datetime import datetime, timezone
 from xml.etree import ElementTree as ET
 
+from xml.sax.saxutils import escape
+
 from feeds.publish import SourceStatus
 from feeds.render import render_direct_table, render_index, render_opml
 
@@ -54,9 +56,20 @@ def test_index_renders_both_sections_with_freshness(registry):
     assert "Direct sources · subscribe to these yourself" in html
     assert html.count('data-built="') == 6                    # every hosted row stamped
     assert 'data-state="failed"' in html                      # failed feed marked server-side
-    assert "mins >= 180" in html                              # 3-hour staleness in the JS
+    assert "mins > 180" in html                               # stale only once older than 3 h
     assert "/feeds/arxiv-cl.xml" in html
     assert "https://www.404media.co/rss/" in html
+
+
+def test_hosted_rows_explain_the_hosting(registry):
+    # The "Why it's here" cell carries `why` (what forces the hosting), so a
+    # hosted source with no note still explains itself. It used to render
+    # `note`, which left the Reddit rows blank under that header.
+    html = render_index(registry, STATUSES, BUILT_AT)
+    for hosted in registry.hosted():
+        assert escape(hosted.why) in html
+    rva = [s for s in registry.hosted() if s.id == "reddit-rva"][0]
+    assert rva.note == "" and escape(rva.why) in html           # the row that used to be blank
 
 
 def test_index_has_no_digest_era_strings(registry):

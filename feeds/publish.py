@@ -6,7 +6,8 @@ and never an empty feed. The predecessor's bytes are re-emitted unchanged
 (byte-stable), so the feed freezes with its last successful-fetch
 lastBuildDate and the staleness badge — not a red X — is the signal. If no
 predecessor exists either (first publication with a dead upstream), a
-zero-item channel is emitted so the deploy stays complete.
+zero-item channel is emitted — with no lastBuildDate, since there has
+never been a successful fetch to stamp — so the deploy stays complete.
 
 The published site is the store (ADR-0004): the predecessor is fetched
 from the live Pages URL derived from [feed].link, so state lives in the
@@ -33,10 +34,6 @@ class SourceStatus:
     error: str = ""
     note: str = ""
 
-    @property
-    def is_stale(self) -> bool:
-        return self.state != "ok"
-
 
 def public_url(feed_meta, source) -> str:
     """The published URL of a hosted feed (the store we merge against)."""
@@ -55,17 +52,21 @@ def run_source(source, feed_meta, built_at: datetime) -> tuple[bytes, SourceStat
         if predecessor is not None:
             # Byte-stable: the predecessor is copied verbatim, lastBuildDate
             # and all — no re-serialization, so nothing drifts.
-            stamp = fetch.parse_last_build_date(predecessor) or emit_mod.rfc2822(built_at)
+            # An unparseable predecessor stamp is reported as unknown ("")
+            # rather than faked with this run's clock.
+            stamp = fetch.parse_last_build_date(predecessor) or ""
             return predecessor, SourceStatus(
                 source_id=source.id, state="stale",
                 error=outcome.error, last_build=stamp,
                 note="upstream fetch failed; predecessor re-emitted unchanged",
             )
-        xml = emit_mod.emit(source.name, site_link, channel_description, built_at, [])
+        xml = emit_mod.emit(source.name, site_link, channel_description,
+                            last_build=None, items=[])
         return xml, SourceStatus(
             source_id=source.id, state="failed",
-            error=outcome.error, last_build=emit_mod.rfc2822(built_at),
-            note="upstream fetch failed and no predecessor is published; emitted an empty channel",
+            error=outcome.error, last_build="",
+            note="upstream fetch failed and no predecessor is published; "
+                 "emitted an empty channel with no lastBuildDate",
         )
 
     items = transform.filter_items(source, outcome.items)

@@ -8,12 +8,19 @@ WORKFLOW = Path(".github/workflows/publish-feeds.yml")
 
 
 def load():
-    return yaml.safe_load(WORKFLOW.read_text())
+    """The parsed workflow, with the `on:` key spelled "on".
+
+    YAML 1.1 parses a bare `on` as the boolean True, so `wf[True]` is what
+    the trigger block is actually keyed by.
+    """
+    wf = yaml.safe_load(WORKFLOW.read_text())
+    wf["on"] = wf.pop(True)
+    return wf
 
 
 def test_cron_is_hourly_at_23():
     wf = load()
-    assert wf[True]["schedule"] == [{"cron": "23 * * * *"}]
+    assert wf["on"]["schedule"] == [{"cron": "23 * * * *"}]
 
 
 def test_concurrency_queues_instead_of_cancelling():
@@ -37,7 +44,7 @@ def test_tests_run_before_pages_upload():
 
 def test_push_trigger_paths_are_narrow():
     wf = load()
-    paths = wf[True]["push"]["paths"]
+    paths = wf["on"]["push"]["paths"]
     assert "sources.toml" in paths
     assert "feeds/**" in paths
 

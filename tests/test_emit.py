@@ -54,6 +54,15 @@ def test_last_build_date_is_built_at():
     assert b"<lastBuildDate>Sun, 13 Sep 2026 12:00:00 +0000</lastBuildDate>" in xml
 
 
+def test_last_build_date_omitted_when_no_fetch_ever_succeeded():
+    # lastBuildDate means "last successful upstream fetch"; a feed that has
+    # never succeeded has no such time, so it is omitted rather than faked
+    # with the current run (ticket 11).
+    xml = emit("T", "https://example.com/", "d", None, [])
+    assert b"<lastBuildDate>" not in xml
+    assert b"<channel>" in xml                      # still a valid empty channel
+
+
 # --- fixture golden: upstream snapshot through the real pipeline ---
 
 def test_fixture_roundtrip():

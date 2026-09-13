@@ -113,7 +113,8 @@ def test_failed_fetch_without_predecessor_emits_empty_channel(registry, monkeypa
     xml, status = publish_mod.run_source(_hosted(registry), registry.feed, BUILT_AT)
     assert status.state == "failed"
     assert b"<item>" not in xml
-    assert b"<lastBuildDate>Sun, 13 Sep 2026 12:00:00 +0000</lastBuildDate>" in xml
+    assert b"<lastBuildDate>" not in xml    # never a successful fetch: nothing honest to stamp
+    assert status.last_build == ""
 
 
 def test_successful_fetch_merges_against_predecessor(registry, monkeypatch):
