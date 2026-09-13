@@ -15,7 +15,6 @@ venv/
 # IDE
 .idea/
 .vscode/
-tests/
 
 # Local agent instructions
 CLAUDE.md

@@ -1,14 +1,14 @@
-# Development / test dependencies for the news digest agent.
+# Development / test dependencies for the feeds publisher.
 #
 # Install alongside the runtime requirements when running the test suite
 # locally or in CI:
 #
 #     python -m pip install -r requirements.txt -r requirements-dev.txt
 #
-# pytest is this repo's first test harness (ticket 08). The suite is fully
-# offline: third-party runtime deps are stubbed in conftest.py, so no network,
-# no real Copilot CLI subprocess, and no real Resend send are ever touched.
+# The suite is fully offline: no test touches the network — fetch
+# behavior is covered with fakes and committed fixtures.
+
 -r requirements.txt
 
 pytest>=7.0
-pyyaml>=6.0   # test-only: parses .github/workflows/*.yml in the schedule tests
+pyyaml>=6.0   # test-only: parses .github/workflows/publish-feeds.yml

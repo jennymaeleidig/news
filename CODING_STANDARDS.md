@@ -1,12 +1,19 @@
 # Coding standards
 
-## Tests are local only
+## Tests are committed and run in CI
 
-`tests/` is gitignored — regression tests never get committed. Write and
-run them on your machine (`python -m pytest tests`); the repo and CI carry
-none. When a change relies on a test to prove it, the test still lives
-only in your local `tests/` — say so in the commit message instead of
-committing the file.
+`tests/` is part of the repo and runs in `publish-feeds.yml` before any
+Pages deploy — a red test blocks publication. The suite is fully offline:
+no test ever touches the network; fetch-level behavior is exercised with
+fakes and golden files.
 
-Everything else follows the normal rules: code, configs, prompts, docs,
-and the `data/` state files all get committed.
+Feed fixtures live at `tests/fixtures/<source-id>/` (an upstream snapshot
+plus the expected emitted `expected.xml`). They are refreshed manually,
+with human diff review, so a hostile upstream can never silently rewrite
+what we consider correct:
+
+    PYTHONPATH=. python scripts/refresh_fixture.py <source-id>   # live fetch
+    git diff tests/fixtures/                                     # review, then commit
+
+Everything else follows the normal rules: code, configs, docs, and the
+registry all get committed.

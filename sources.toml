@@ -1,0 +1,271 @@
+# The source registry — the single source of truth for everything this
+# repo knows about feeds. Replaces the digest-era categories/*.json.
+#
+#   mode = "direct"  the `url` is itself what a reader subscribes to;
+#                    nothing is generated or fetched for it here
+#   mode = "hosted"  this repo publishes a feed for it at /feeds/<id>.xml
+#                    (a `why` is required: what forces the hosting)
+#
+# Registry order is display order (index, OPML, direct table).
+# `id` is permanent: it is the public path /feeds/<id>.xml and the OPML key.
+#
+# Optional fields: `site` (human page), `note` (why the source is worth
+# following; becomes the hosted feed's <description> when present), and
+# for hosted sources a `strategy` block naming the fetch/transform shape.
+
+[feed]
+title = "Jenny's source log"
+link = "https://jennymaeleidig.github.io/news-digest-agent/"
+language = "en"
+description = "Feeds this site publishes, and the sources behind them. The registry is sources.toml in the repo."
+description_template = "Items from {name}, part of Jenny's source log."
+
+# ---- direct (20) — subscribe to these in your reader ----
+
+[[sources]]
+id = "hf-blog"
+name = "Hugging Face blog"
+mode = "direct"
+url = "https://huggingface.co/blog/feed.xml"
+site = "https://huggingface.co/blog"
+note = "Headlines only — their feed carries no descriptions."
+
+[[sources]]
+id = "radarai"
+name = "radarai.top"
+mode = "direct"
+url = "https://radarai.top/en/feed.xml"
+site = "https://radarai.top"
+note = "Aggregator by design; links go off-site."
+
+[[sources]]
+id = "aihero-skills"
+name = "AI Hero Skills"
+mode = "direct"
+url = "https://www.aihero.dev/skills/rss.xml"
+site = "https://www.aihero.dev"
+
+[[sources]]
+id = "democracy-now"
+name = "Democracy Now!"
+mode = "direct"
+url = "https://www.democracynow.org/democracynow.rss"
+site = "https://www.democracynow.org"
+
+[[sources]]
+id = "drop-site-news"
+name = "Drop Site News"
+mode = "direct"
+url = "https://www.dropsitenews.com/feed"
+site = "https://www.dropsitenews.com"
+note = "Full text."
+
+[[sources]]
+id = "the-51st"
+name = "The 51st"
+mode = "direct"
+url = "https://51st.news/rss/"
+site = "https://51st.news"
+
+[[sources]]
+id = "404-media"
+name = "404 Media"
+mode = "direct"
+url = "https://www.404media.co/rss/"
+site = "https://www.404media.co"
+note = "Full text."
+
+[[sources]]
+id = "user-mag"
+name = "User Mag"
+mode = "direct"
+url = "https://www.usermag.co/feed"
+site = "https://www.usermag.co"
+
+[[sources]]
+id = "aftermath"
+name = "Aftermath"
+mode = "direct"
+url = "https://aftermath.site/rss/"
+site = "https://aftermath.site"
+note = "Full text."
+
+[[sources]]
+id = "wired"
+name = "Wired"
+mode = "direct"
+url = "https://www.wired.com/feed/rss"
+site = "https://www.wired.com"
+note = "Summary only (~140 chars)."
+
+[[sources]]
+id = "morning-brew"
+name = "Morning Brew"
+mode = "direct"
+url = "https://www.morningbrew.com/feed.xml"
+site = "https://www.morningbrew.com"
+
+[[sources]]
+id = "jason-schreier"
+name = "Jason Schreier (YouTube)"
+mode = "direct"
+url = "https://www.youtube.com/feeds/videos.xml?channel_id=UCQoOmu6mKZkXTnwZcpD8Ciw"
+site = "https://www.youtube.com/@jasonschreier"
+
+[[sources]]
+id = "propublica"
+name = "ProPublica"
+mode = "direct"
+url = "https://www.propublica.org/feeds/propublica/main"
+site = "https://www.propublica.org"
+note = "Full articles."
+
+[[sources]]
+id = "defector"
+name = "Defector"
+mode = "direct"
+url = "https://defector.com/feed"
+site = "https://defector.com"
+
+[[sources]]
+id = "ken-klippenstein"
+name = "Ken Klippenstein"
+mode = "direct"
+url = "https://www.kenklippenstein.com/feed"
+site = "https://www.kenklippenstein.com"
+note = "Full text."
+
+[[sources]]
+id = "npr"
+name = "NPR News"
+mode = "direct"
+url = "https://feeds.npr.org/1001/rss.xml"
+site = "https://www.npr.org"
+
+[[sources]]
+id = "pbs-newshour"
+name = "PBS NewsHour"
+mode = "direct"
+url = "https://www.pbs.org/newshour/feeds/rss/headlines"
+site = "https://www.pbs.org/newshour"
+note = "Direct — the old Safari user-agent override was deleted; PBS serves the standard browser string fine."
+
+[[sources]]
+id = "majority-report"
+name = "Majority Report (YouTube)"
+mode = "direct"
+url = "https://www.youtube.com/feeds/videos.xml?channel_id=UC-3jIAlnQmbbVMV6gR7K8aQ"
+site = "https://www.youtube.com/@TheMajorityReport"
+
+[[sources]]
+id = "hasanabi"
+name = "HasanAbi (YouTube)"
+mode = "direct"
+url = "https://www.youtube.com/feeds/videos.xml?channel_id=UCtoaZpBnrd0lhycxYJ4MNOQ"
+site = "https://www.youtube.com/@hasanabi"
+
+[[sources]]
+id = "true-anon"
+name = "True Anon"
+mode = "direct"
+url = "https://www.patreon.com/public-rss/2963533?show=875184"
+site = "https://www.patreon.com/truelit"
+note = "Unlisted first-party Patreon podcast feed; mixes [PREVIEW] stubs with free episodes."
+
+# ---- hosted (6) — this repo publishes /feeds/<id>.xml ----
+
+[[sources]]
+id = "arxiv-cl"
+name = "arXiv cs.CL (LLM)"
+mode = "hosted"
+url = "https://rss.arxiv.org/rss/cs.CL"
+site = "https://arxiv.org"
+why = "arXiv offers no server-side keyword filter; this trims the cs.CL firehose to the LLM/agent subset."
+note = "Kept for the LLM subset of the comp-ling firehose; topic-filtered server-side."
+
+[sources.strategy]
+name = "topic_filter"
+terms = [
+  "large language model", "language model", "llm", "llms", "foundation model",
+  "alignment", "rlhf", "fine-tuning", "fine tuning", "instruction tuning",
+  "in-context learning", "chain-of-thought", "chain of thought", "hallucination",
+  "pre-training", "pretraining", "post-training", "prompt", "reasoning",
+  "multimodal", "code generation", "code agent", "coding agent", "code model",
+  "program synthesis", "program repair", "code repair", "coding assistant",
+  "agentic", "software engineering agent", "software engineering benchmark",
+  "sw-bench", "llm agent", "ai agent", "tool use", "tool-use", "function calling",
+  "code completion", "copilot", "code reasoning", "code intelligence",
+  "code benchmark",
+]
+
+[[sources]]
+id = "arxiv-se"
+name = "arXiv cs.SE (software engineering)"
+mode = "hosted"
+url = "https://rss.arxiv.org/rss/cs.SE"
+site = "https://arxiv.org"
+why = "Same shape as arxiv-cl: the cs.SE firehose trimmed to the code/SE subset."
+note = "The code/SE subset, same topic filter approach."
+
+[sources.strategy]
+name = "topic_filter"
+terms = [
+  "code generation", "code agent", "coding agent", "code model",
+  "program synthesis", "program repair", "code repair", "coding assistant",
+  "agentic", "software engineering agent", "software engineering benchmark",
+  "sw-bench", "sw bench", "llm agent", "ai agent", "tool use", "tool-use",
+  "function calling", "code completion", "copilot", "code review",
+  "code reasoning", "code intelligence", "code benchmark",
+  "large language model", "language model", "llm", "llms",
+]
+
+[[sources]]
+id = "hf-daily-papers"
+name = "Hugging Face Daily Papers"
+mode = "hosted"
+url = "https://huggingface.co/api/daily_papers"
+site = "https://huggingface.co/papers"
+why = "No first-party feed exists (every feed path 401s); the keyless JSON API is the only upstream."
+note = "Staff-curated daily AI paper list; no first-party feed exists, so this repo renders one."
+
+[sources.strategy]
+name = "json_api"
+item = "$"
+title = "paper.title"
+link = "paper.id"
+date = "paper.submittedOnDailyAt"
+summary = "paper.summary"
+upvotes = "paper.upvotes"
+
+[[sources]]
+id = "reddit-localllama"
+name = "Reddit r/LocalLLaMA"
+mode = "hosted"
+url = "https://www.reddit.com/r/LocalLLaMA/.rss"
+site = "https://www.reddit.com/r/LocalLLaMA"
+why = "Reddit's native .rss 403s non-browser user agents, which a reader app can't send; the hosted fetch can."
+
+[sources.strategy]
+name = "passthrough"
+
+[[sources]]
+id = "reddit-rva"
+name = "Reddit r/rva"
+mode = "hosted"
+url = "https://www.reddit.com/r/rva/.rss"
+site = "https://www.reddit.com/r/rva"
+why = "Reddit's native .rss 403s non-browser user agents, which a reader app can't send; the hosted fetch can."
+
+[sources.strategy]
+name = "passthrough"
+
+[[sources]]
+id = "richmond-times-dispatch"
+name = "Richmond Times-Dispatch"
+mode = "hosted"
+url = "https://richmond.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc"
+site = "https://richmond.com"
+why = "The TownNews /search endpoint rate-limits plain clients (HTTP 429 from datacenter IPs); the hosted fetch retries with a browser identity."
+
+[sources.strategy]
+name = "passthrough"

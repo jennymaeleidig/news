@@ -1,0 +1,57 @@
+name: Publish feeds
+
+on:
+  schedule:
+    # Hourly at :23 — offset from the top of the hour on purpose.
+    - cron: '23 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'sources.toml'
+      - 'feeds/**'
+      - '.github/workflows/publish-feeds.yml'
+
+permissions:
+  pages: write
+  id-token: write
+
+# Runs queue instead of overlapping: two concurrent deploys would read-merge-
+# deploy the published feeds and lose one run's items.
+concurrency:
+  group: publish-feeds
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Test
+        run: python -m pytest
+
+      - name: Generate feeds and site
+        # Failed upstream fetches annotate ::warning:: here and append a
+        # per-source table to the Job Summary; the run stays green.
+        run: python -m feeds gen --out site --summary-file "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

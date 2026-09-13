@@ -2,17 +2,18 @@ cff-version: 1.2.0
 title: news-digest-agent
 authors:
   - alias: jennymaeleidig
-version: 0.1.0
-date-released: "2026-09-04"
+version: 0.2.0
+date-released: "2026-09-13"
 license: MIT
 url: "https://github.com/jennymaeleidig/news-digest-agent"
 abstract: >-
-  Category-driven daily news digest: fetches curated sources
-  (RSS, YouTube, JSON APIs), has an LLM pick and summarize the
-  day's most relevant items, and emails the result. Forked from
-  the upstream project recorded under `references` and extended
-  with additional categories, a per-source User-Agent override,
-  and cross-category source mappings.
+  A personal source log that publishes RSS feeds. sources.toml is
+  the registry — 20 sources subscribed directly in a reader app,
+  6 published here: arXiv filtered to the LLM/software-engineering
+  subset, Hugging Face Daily Papers, two Reddits, and the Richmond
+  Times-Dispatch. The published site is the store: each hourly run
+  merges fresh fetches against the live feed, failures re-emit the
+  predecessor byte-stable, and no API keys are involved.
 references:
   - type: repository
     title: ai-news-digest-agent
