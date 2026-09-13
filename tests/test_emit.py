@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import pytest
 
 from feeds.emit import emit
-from feeds.fetch import parse_feed_bytes, parse_json_bytes
 from feeds.publish import run_source
 
 from conftest import BUILT_AT, hosted_source, make_item
@@ -76,12 +75,8 @@ def test_fixture_roundtrip(source_id, registry):
     fixture = FIXTURES / source_id
     source = hosted_source(registry, source_id)
 
-    snapshot = fixture / "upstream.json"
-    if snapshot.exists():
-        outcome = parse_json_bytes(snapshot.read_bytes(), source.strategy)
-    else:
-        snapshot = fixture / "upstream.xml"
-        outcome = parse_feed_bytes(snapshot.read_bytes())
+    snapshot = fixture / source.strategy.snapshot_filename
+    outcome = source.strategy.parse(snapshot.read_bytes())
     assert outcome.ok, outcome.error
 
     xml, _ = run_source(source, registry.feed, BUILT_AT, outcome, predecessor=None)

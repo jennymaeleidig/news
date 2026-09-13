@@ -4,28 +4,23 @@ The registry is the artifact (ADR-0003): this file is the owner's personal
 log of sources, and the feeds are one rendering of it. The loader is strict
 because everything downstream (public feed paths, the OPML, the index)
 derives from it — a malformed registry should fail the run, not silently
-publish a half-site.
+publish a half-site. Each hosted source's `[sources.strategy]` block is
+validated by its strategy module (`feeds.strategies`), which the loader
+resolves by name.
 """
 
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
+
+from feeds.strategies import names as strategy_names, resolve as resolve_strategy
+from feeds.strategies.base import Strategy, StrategyConfigError
 
 DEFAULT_REGISTRY_PATH = "sources.toml"
 
-_STRATEGY_NAMES = ("topic_filter", "passthrough", "json_api")
 _MODES = ("direct", "hosted")
-
-
-@dataclass(frozen=True)
-class Strategy:
-    """A hosted source's fetch/transform shape. The registry names intent;
-    feeds.fetch/feeds.transform own the mechanics."""
-
-    name: str
-    params: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -121,9 +116,12 @@ def load(path: str | Path = DEFAULT_REGISTRY_PATH) -> Registry:
             _require(bool(why), f"{label}: a hosted source must declare why it is hosted")
             _require(isinstance(strategy_raw, dict), f"{label}: a hosted source needs a [sources.strategy] block")
             name = strategy_raw.get("name")
-            _require(name in _STRATEGY_NAMES, f"{label}: strategy must be one of {_STRATEGY_NAMES}")
-            _validate_strategy(label, name, strategy_raw)
-            strategy = Strategy(name=name, params=dict(strategy_raw))
+            module = resolve_strategy(name) if isinstance(name, str) else None
+            _require(module is not None, f"{label}: strategy must be one of {strategy_names()}")
+            try:
+                strategy = module.build(strategy_raw)
+            except StrategyConfigError as e:
+                raise RegistryError(f"{label}: {e}") from e
 
         sources.append(Source(
             id=sid,
@@ -137,18 +135,3 @@ def load(path: str | Path = DEFAULT_REGISTRY_PATH) -> Registry:
         ))
 
     return Registry(feed=feed, sources=tuple(sources))
-
-
-def _validate_strategy(label: str, name: str, block: dict) -> None:
-    if name == "topic_filter":
-        terms = block.get("terms")
-        _require(
-            isinstance(terms, list) and terms and all(isinstance(t, str) and t.strip() for t in terms),
-            f"{label}: topic_filter needs a non-empty list of non-empty 'terms'",
-        )
-    elif name == "json_api":
-        for req in ("item", "title", "link", "date"):
-            _require(bool(block.get(req)), f"{label}: json_api needs {req!r} (a dot-path)")
-    elif name == "passthrough":
-        extra = set(block) - {"name"}
-        _require(not extra, f"{label}: passthrough takes no params (got {sorted(extra)})")

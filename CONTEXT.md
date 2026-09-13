@@ -46,7 +46,8 @@ _Avoid_: article, post, story, digest entry
 Direct sources touch none of this.
 
 **Fetch**:
-The stage that pulls items from a hosted source's upstream endpoint.
+The stage that pulls items from a hosted source's upstream endpoint, using
+that source's **Strategy**.
 _Avoid_: scrape, crawl
 
 **Freshness**:
@@ -56,11 +57,16 @@ last-known-good is being re-served. Direct sources have none — they are
 never fetched here.
 _Avoid_: health, liveness, status
 
+**Strategy**:
+A hosted source's named shape (`topic_filter`, `passthrough`, `json_api`):
+its request headers, its parser, its filter, and its parameters. One
+strategy spans the Fetch and Transform stages.
+_Avoid_: fetcher, handler, fetch config
+
 **Transform**:
-A hosted source's named strategy (`topic_filter`, `passthrough`,
-`json_api`) and its parameters for shaping upstream items into feed items
-— pure filtering and field mapping, never the network.
-_Avoid_: filter, conversion
+The stage that applies a hosted source's **Strategy** filter to upstream
+items — pure filtering and field mapping, never the network.
+_Avoid_: conversion
 
 **Publication**:
 The stage that renders and ships the published site: each hosted feed

@@ -26,8 +26,6 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 FIXTURES = REPO / "tests" / "fixtures"
-SNAPSHOTS = {"json_api": "upstream.json"}
-DEFAULT_SNAPSHOT = "upstream.xml"
 
 
 def main() -> int:
@@ -38,7 +36,7 @@ def main() -> int:
 
     import requests
 
-    from feeds.fetch import fetch_bytes, parse_feed_bytes, parse_json_bytes
+    from feeds.fetch import fetch_bytes
     from feeds.publish import run_source
     from feeds.registry import load
 
@@ -54,18 +52,13 @@ def main() -> int:
         else datetime.now(timezone.utc)
     )
 
-    strategy = source.strategy.name if source.strategy else "rss"
     try:
         raw = fetch_bytes(source)                       # upstream's own bytes
     except requests.RequestException as e:
         print(f"fetch failed: {e}", file=sys.stderr)
         return 1
 
-    outcome = (
-        parse_json_bytes(raw, source.strategy)
-        if strategy == "json_api"
-        else parse_feed_bytes(raw)
-    )
+    outcome = source.strategy.parse(raw)
     if not outcome.ok:
         print(f"parse failed: {outcome.error}", file=sys.stderr)
         return 1
@@ -77,7 +70,7 @@ def main() -> int:
     # also records the snapshot).
     xml, status = run_source(source, registry.feed, built_at, outcome, predecessor=None)
 
-    snapshot = SNAPSHOTS.get(strategy, DEFAULT_SNAPSHOT)
+    snapshot = source.strategy.snapshot_filename
     out = FIXTURES / source.id
     out.mkdir(parents=True, exist_ok=True)
     for stale in sorted({"upstream.xml", "upstream.json"} - {snapshot}):

@@ -2,7 +2,7 @@
 
 The suite is fully offline: no test touches the network. Fetch-level
 behavior is covered with fakes (monkeypatching feeds.fetch) and committed
-fixtures run through the real parsing code path (feeds.fetch.parse_feed_bytes).
+fixtures run through the real parsing code path (each strategy's parse).
 """
 
 import sys

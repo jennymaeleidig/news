@@ -39,9 +39,9 @@ def test_direct_sources_declare_no_strategy_and_no_why(registry):
 
 def test_arxiv_term_lists_are_intact(registry):
     by_id = {s.id: s for s in registry.hosted()}
-    assert len(by_id["arxiv-cl"].strategy.params["terms"]) == 42
-    assert len(by_id["arxiv-se"].strategy.params["terms"]) == 28
-    assert "sw bench" in by_id["arxiv-se"].strategy.params["terms"]
+    assert len(by_id["arxiv-cl"].strategy.terms) == 42
+    assert len(by_id["arxiv-se"].strategy.terms) == 28
+    assert "sw bench" in by_id["arxiv-se"].strategy.terms
 
 
 def test_feed_meta_and_channel_description(registry):
@@ -133,3 +133,33 @@ name = "scrape_html"
 """)
     with pytest.raises(RegistryError, match="strategy must be one of"):
         load(path)
+
+
+def test_the_strategy_module_validates_its_own_block(tmp_path):
+    """The registry delegates; the strategy's message surfaces under the
+    source's label."""
+    path = write_registry(tmp_path, """
+[feed]
+title = "t"
+link = "https://example.com/"
+[[sources]]
+id = "a"
+name = "A"
+mode = "hosted"
+url = "https://example.com/a.xml"
+why = "because"
+[sources.strategy]
+name = "topic_filter"
+terms = []
+""")
+    with pytest.raises(RegistryError, match=r"sources\[a\].*terms"):
+        load(path)
+
+
+def test_hosted_strategy_blocks_validate_into_typed_configs(registry):
+    by_id = {s.id: s for s in registry.hosted()}
+    assert by_id["arxiv-se"].strategy.terms[-1] == "llms"          # topic_filter
+    assert by_id["reddit-rva"].strategy.name == "passthrough"       # passthrough
+    hf = by_id["hf-daily-papers"].strategy                          # json_api
+    assert hf.item == "$" and hf.link == "paper.id"
+    assert not hasattr(hf, "params")

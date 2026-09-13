@@ -22,8 +22,9 @@ from datetime import datetime
 from pathlib import Path
 
 from feeds import emit as emit_mod
-from feeds import fetch, merge, store, transform
+from feeds import fetch, merge, store
 from feeds.model import FetchOutcome, Item
+from feeds.strategies.rss import last_build_date
 
 
 @dataclass
@@ -57,7 +58,7 @@ def run_source(
             # and all — no re-serialization, so nothing drifts.
             # An unparseable predecessor stamp is reported as unknown ("")
             # rather than faked with this run's clock.
-            stamp = fetch.last_build_date(predecessor) or ""
+            stamp = last_build_date(predecessor) or ""
             return predecessor, SourceRun(
                 source_id=source.id, state="stale",
                 error=upstream.error or "", last_build=stamp,
@@ -72,7 +73,7 @@ def run_source(
                  "emitted an empty channel with no lastBuildDate",
         )
 
-    items = transform.filter_items(source, upstream.items)
+    items = source.strategy.filter(upstream.items)
     predecessor_items: list[Item] = merge.parse_predecessor(predecessor) if predecessor else []
     merged = merge.merge(items, predecessor_items, built_at)
     xml = emit_mod.emit(source.name, site_link, channel_description, built_at, merged)
