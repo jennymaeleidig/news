@@ -11,10 +11,10 @@ never silently redefine what we consider correct output.
 Writes tests/fixtures/<source-id>/{upstream.xml | upstream.json,expected.xml}.
 The snapshot is upstream's own response body, byte for byte (rss strategies
 land in upstream.xml, the json_api strategy in upstream.json), so the fixture
-test parses exactly what the source sent. expected.xml is produced by the
-exact test-pipeline path (the matching parse_*_bytes → transform → merge
-against no predecessor → emit), with the clock frozen at --built-at so the
-golden only changes when behavior or upstream content changes.
+test parses exactly what the source sent. expected.xml is produced by
+`publish.run_source` — the assembly the cron runs — with no predecessor and
+the clock frozen at --built-at, so the golden only changes when behavior or
+upstream content changes.
 """
 
 from __future__ import annotations
@@ -38,11 +38,9 @@ def main() -> int:
 
     import requests
 
-    from feeds.emit import emit
     from feeds.fetch import fetch_bytes, parse_feed_bytes, parse_json_bytes
-    from feeds.merge import merge
+    from feeds.publish import run_source
     from feeds.registry import load
-    from feeds.transform import filter_items
 
     registry = load(REPO / "sources.toml")
     source = next((s for s in registry.hosted() if s.id == args.source_id), None)
@@ -74,10 +72,10 @@ def main() -> int:
     if outcome.note:
         print(f"note: {outcome.note}")
 
-    items = filter_items(source, outcome.items)
-    merged = merge(items, [], built_at)
-    xml = emit(source.name, source.site,
-               registry.feed.channel_description(source), built_at, merged)
+    # The expected golden comes from the same assembly the cron runs; the only
+    # difference is where the upstream bytes came from (this live fetch, which
+    # also records the snapshot).
+    xml, status = run_source(source, registry.feed, built_at, outcome, predecessor=None)
 
     snapshot = SNAPSHOTS.get(strategy, DEFAULT_SNAPSHOT)
     out = FIXTURES / source.id
@@ -89,7 +87,7 @@ def main() -> int:
     (out / snapshot).write_bytes(raw)
     (out / "expected.xml").write_bytes(xml)
     print(f"wrote {out}/{snapshot} ({len(raw)} bytes, upstream's own response)")
-    print(f"wrote {out}/expected.xml ({len(xml)} bytes, {len(merged)} items)")
+    print(f"wrote {out}/expected.xml ({len(xml)} bytes, {status.item_count} items)")
     print("review the diff before committing:")
     print(f"  git diff tests/fixtures/{source.id}/")
     return 0

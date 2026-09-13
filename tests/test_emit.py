@@ -7,11 +7,9 @@ import pytest
 
 from feeds.emit import emit
 from feeds.fetch import parse_feed_bytes, parse_json_bytes
-from feeds.merge import merge
 from feeds.publish import run_source
-from feeds.transform import filter_items
 
-from conftest import BUILT_AT, make_item
+from conftest import BUILT_AT, hosted_source, make_item
 
 FIXTURES = __import__("pathlib").Path(__file__).parent / "fixtures"
 
@@ -73,10 +71,10 @@ def _fixtures():
 
 @pytest.mark.parametrize("source_id", _fixtures())
 def test_fixture_roundtrip(source_id, registry):
-    """Upstream's own bytes in, the committed expected.xml out — the same
-    mapping the live run uses, minus the network."""
+    """Upstream's own bytes in, the committed expected.xml out — through the
+    same assembly the live run uses, with no predecessor and no network."""
     fixture = FIXTURES / source_id
-    source = [s for s in registry.hosted() if s.id == source_id][0]
+    source = hosted_source(registry, source_id)
 
     snapshot = fixture / "upstream.json"
     if snapshot.exists():
@@ -86,9 +84,6 @@ def test_fixture_roundtrip(source_id, registry):
         outcome = parse_feed_bytes(snapshot.read_bytes())
     assert outcome.ok, outcome.error
 
-    items = filter_items(source, outcome.items)
-    merged = merge(items, [], BUILT_AT)                     # first run: no predecessor
-    xml = emit(source.name, source.site,
-               registry.feed.channel_description(source), BUILT_AT, merged)
+    xml, _ = run_source(source, registry.feed, BUILT_AT, outcome, predecessor=None)
 
     assert xml == (fixture / "expected.xml").read_bytes()

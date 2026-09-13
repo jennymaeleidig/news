@@ -35,6 +35,11 @@ def make_item(
     )
 
 
+def hosted_source(registry, source_id: str):
+    """The one hosted source with this id — fixtures are per source id."""
+    return next(s for s in registry.hosted() if s.id == source_id)
+
+
 @pytest.fixture
 def registry():
     from feeds.registry import load

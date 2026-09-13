@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 
+from feeds import store
 from feeds.emit import rfc2822
 
 
@@ -95,15 +96,14 @@ def _site_link(site: str) -> str:
 
 def render_index(registry, statuses, built_at: datetime) -> str:
     by_id = {s.source_id: s for s in statuses}
-    feed_base = registry.feed.link.rstrip("/")
 
     hosted_rows = []
     for source in registry.hosted():
         status = by_id[source.id]
-        feed_href = f"{feed_base}/feeds/{source.id}.xml"
+        feed_href = store.address(registry.feed, source)
         name_cell = (
             f'<a href="{escape(feed_href)}"><b>{escape(source.name)}</b></a><br>'
-            f'<span class="url">{escape(source.feed_url)}</span>'
+            f'<span class="url">{escape(store.path(source))}</span>'
         )
         hosted_rows.append(
             "<tr>"
@@ -152,7 +152,6 @@ def render_index(registry, statuses, built_at: datetime) -> str:
 
 
 def render_opml(registry, built_at: datetime) -> bytes:
-    feed_base = registry.feed.link.rstrip("/")
     opml = ET.Element("opml", {"version": "2.0"})
     head = ET.SubElement(opml, "head")
     ET.SubElement(head, "title").text = registry.feed.title
@@ -162,7 +161,7 @@ def render_opml(registry, built_at: datetime) -> bytes:
     for source in registry.sources:
         attrs = {"text": source.name, "type": "rss"}
         if source.mode == "hosted":
-            attrs["xmlUrl"] = f"{feed_base}/feeds/{source.id}.xml"
+            attrs["xmlUrl"] = store.address(registry.feed, source)
         else:
             attrs["xmlUrl"] = source.url
         if source.site:

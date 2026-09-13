@@ -23,6 +23,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from feeds import fetch
 from feeds.publish import generate_site
 from feeds.registry import load
 
@@ -69,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"direct table -> {path}")
         return 0
 
-    statuses = generate_site(registry, args.out, built_at)
+    statuses = generate_site(registry, args.out, built_at, fetch.http_get)
     for s in statuses:
         word = _state_word(s)
         print(f"{s.source_id}: {word} ({s.item_count} items, lastBuildDate {s.last_build})")

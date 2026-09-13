@@ -68,3 +68,10 @@ merges with its live published predecessor under the retention cap, a
 failed source re-emits last-known-good, and the index, direct table, and
 OPML are rendered here.
 _Avoid_: deploy, build, release
+
+**Published store**:
+The feed as currently published on Pages, read back as this run's
+predecessor. The published site is the store (ADR-0004): a hosted feed
+merges the fresh upstream fetch against it, so state lives in the
+artifact, not in the repo.
+_Avoid_: state file, cache, database

@@ -12,9 +12,10 @@ Two fetch shapes exist, one per hosted strategy:
   rss        the normal case — parse the feed, map entries to Items
   json_api   HF Daily Papers — one JSON fetch, dot-path field mapping
 
-A predecessor fetch (the feed currently published on Pages) is also an
-HTTP concern, so it lives here: the published site is the store
-(ADR-0004), and merging means GET-ing it back.
+The published store's read is its own module (feeds.store); this module
+supplies the HTTP adapter it runs on, because retry and headers are HTTP
+concerns. `last_build_date` is the RSS parser's answer for the
+predecessor's stamp.
 """
 
 from __future__ import annotations
@@ -245,21 +246,17 @@ def fetch(source) -> FetchOutcome:
     return fetch_rss(source, source.strategy)
 
 
-def fetch_predecessor(feed_url: str) -> bytes | None:
-    """GET the feed as currently published (the store). Any failure —
-    404 on first publication, Pages unavailable, parse — returns None and
-    the run proceeds with the upstream fetch alone."""
-    try:
-        resp = _fetch_response(feed_url, _headers())
-        return resp.content
-    except requests.RequestException:
-        return None
+def http_get(url: str) -> bytes:
+    """GET a URL and return its body, retrying transient causes — the
+    published store's transport (feeds.store.Transport). Raises
+    requests.RequestException once the retry budget is exhausted."""
+    return _fetch_response(url, _headers()).content
 
 
-def parse_last_build_date(data: bytes) -> str | None:
+def last_build_date(data: bytes) -> str | None:
     """The predecessor channel's lastBuildDate, raw. Used to keep the
     freshness stamp truthful when a failed fetch re-emits the predecessor.
-    feedparser 6.x maps lastBuildDate to the 'updated' key."""
-    parsed = feedparser.parse(data)
-    stamp = parsed.feed.get("updated") or parsed.feed.get("lastbuilddate")
+    feedparser 6.x maps <lastBuildDate> to the 'updated' key and exposes no
+    'lastbuilddate' of its own."""
+    stamp = feedparser.parse(data).feed.get("updated")
     return stamp or None

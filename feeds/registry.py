@@ -39,10 +39,6 @@ class Source:
     note: str = ""     # why the source is worth following; becomes the feed <description>
     strategy: Strategy | None = None
 
-    @property
-    def feed_url(self) -> str:
-        return f"/feeds/{self.id}.xml"
-
 
 @dataclass(frozen=True)
 class FeedMeta:

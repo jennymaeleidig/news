@@ -1,5 +1,5 @@
-"""Publish: one upstream fetch per hosted source, merged with the feed as
-currently published, emitted, and written into the site directory.
+"""Publication: fetch each hosted source upstream, merge against the published
+store, and emit the feed bytes.
 
 Failure policy (tickets 08/11): a failed upstream fetch is never a red run
 and never an empty feed. The predecessor's bytes are re-emitted unchanged
@@ -9,9 +9,10 @@ predecessor exists either (first publication with a dead upstream), a
 zero-item channel is emitted — with no lastBuildDate, since there has
 never been a successful fetch to stamp — so the publication stays complete.
 
-The published site is the store (ADR-0004): the predecessor is fetched
-from the live Pages URL derived from [feed].link, so state lives in the
-artifact, not in this repo.
+`run_source` is the assembly and takes both sides as values — the fetch
+outcome and the predecessor's bytes — so the failure policy is exercised
+without fakes, and the fixture path runs the same assembly the cron does.
+Who fetches and who reads the store (ADR-0004) is the caller's business.
 """
 
 from __future__ import annotations
@@ -21,8 +22,8 @@ from datetime import datetime
 from pathlib import Path
 
 from feeds import emit as emit_mod
-from feeds import fetch, merge, transform
-from feeds.model import Item
+from feeds import fetch, merge, store, transform
+from feeds.model import FetchOutcome, Item
 
 
 @dataclass
@@ -38,63 +39,63 @@ class SourceRun:
     note: str = ""
 
 
-def public_url(feed_meta, source) -> str:
-    """The published URL of a hosted feed (the store we merge against)."""
-    return f"{feed_meta.link.rstrip('/')}/feeds/{source.id}.xml"
-
-
-def run_source(source, feed_meta, built_at: datetime) -> tuple[bytes, SourceRun]:
-    """Fetch → transform → merge → emit for one hosted source.
+def run_source(
+    source,
+    feed_meta,
+    built_at: datetime,
+    upstream: FetchOutcome,
+    predecessor: bytes | None,
+) -> tuple[bytes, SourceRun]:
+    """Merge a fetch outcome with the published predecessor and emit.
     Returns the feed bytes and a status for reporting."""
     site_link = source.site or feed_meta.link
     channel_description = feed_meta.channel_description(source)
 
-    outcome = fetch.fetch(source)
-    if not outcome.ok:
-        predecessor = fetch.fetch_predecessor(public_url(feed_meta, source))
+    if not upstream.ok:
         if predecessor is not None:
             # Byte-stable: the predecessor is copied verbatim, lastBuildDate
             # and all — no re-serialization, so nothing drifts.
             # An unparseable predecessor stamp is reported as unknown ("")
             # rather than faked with this run's clock.
-            stamp = fetch.parse_last_build_date(predecessor) or ""
+            stamp = fetch.last_build_date(predecessor) or ""
             return predecessor, SourceRun(
                 source_id=source.id, state="stale",
-                error=outcome.error, last_build=stamp,
+                error=upstream.error or "", last_build=stamp,
                 note="upstream fetch failed; predecessor re-emitted unchanged",
             )
         xml = emit_mod.emit(source.name, site_link, channel_description,
                             last_build=None, items=[])
         return xml, SourceRun(
             source_id=source.id, state="failed",
-            error=outcome.error, last_build="",
+            error=upstream.error or "", last_build="",
             note="upstream fetch failed and no predecessor is published; "
                  "emitted an empty channel with no lastBuildDate",
         )
 
-    items = transform.filter_items(source, outcome.items)
-    predecessor = fetch.fetch_predecessor(public_url(feed_meta, source))
+    items = transform.filter_items(source, upstream.items)
     predecessor_items: list[Item] = merge.parse_predecessor(predecessor) if predecessor else []
     merged = merge.merge(items, predecessor_items, built_at)
     xml = emit_mod.emit(source.name, site_link, channel_description, built_at, merged)
     return xml, SourceRun(
         source_id=source.id, state="ok",
         item_count=len(merged), last_build=emit_mod.rfc2822(built_at),
-        note=outcome.note or "",
+        note=upstream.note or "",
     )
 
 
-def generate_site(registry, out_dir: str | Path, built_at: datetime) -> list[SourceRun]:
+def generate_site(registry, out_dir: str | Path, built_at: datetime,
+                  transport: store.Transport) -> list[SourceRun]:
     """Run every hosted source and write the full site: feeds/, index, OPML."""
     from feeds import render
 
     out = Path(out_dir)
-    (out / "feeds").mkdir(parents=True, exist_ok=True)
 
     statuses: list[SourceRun] = []
     for source in registry.hosted():
-        xml, status = run_source(source, registry.feed, built_at)
-        (out / "feeds" / f"{source.id}.xml").write_bytes(xml)
+        upstream = fetch.fetch(source)
+        predecessor = store.read(source, registry.feed, transport)
+        xml, status = run_source(source, registry.feed, built_at, upstream, predecessor)
+        store.write(out, source, xml)
         statuses.append(status)
 
     (out / "index.html").write_text(
