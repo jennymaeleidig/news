@@ -91,6 +91,23 @@ def _freshness_span(run: SourceRun) -> str:
     return f'<span class="tag fresh" data-built="{iso}"></span>'
 
 
+def _discovery_links(registry) -> str:
+    """The `<link rel="alternate">` tags a reader app follows to find this
+    site's feeds from the page URL alone (Reeder and other readers do
+    autodiscovery this way). One per hosted feed — direct sources are
+    subscribed to at their own addresses, not discovered here.
+    """
+    links = []
+    for source in registry.hosted():
+        href = store.address(registry.feed, source)
+        title = escape(source.name, {'"': "&quot;"})
+        links.append(
+            f'<link rel="alternate" type="application/rss+xml" '
+            f'title="{title}" href="{escape(href)}">'
+        )
+    return "\n".join(links)
+
+
 def _site_link(site: str) -> str:
     if not site:
         return "—"
@@ -136,6 +153,7 @@ def render_index(registry, runs: list[SourceRun], built_at: datetime) -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{escape(registry.feed.title)}</title>
+{_discovery_links(registry)}
 <style>{_CSS}</style>
 </head>
 <body>

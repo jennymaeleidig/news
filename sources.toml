@@ -14,13 +14,13 @@
 # for hosted sources a `strategy` block naming the fetch/transform shape.
 
 [feed]
-title = "Jenny's source log"
+title = "Jenny's news sources"
 link = "https://jennymaeleidig.github.io/news-digest-agent/"
 language = "en"
 description = "Feeds this site publishes, and the sources behind them. The registry is sources.toml in the repo."
 description_template = "Items from {name}, part of Jenny's source log."
 
-# ---- direct (21) — subscribe to these in your reader ----
+# ---- direct (23) — subscribe to these in your reader ----
 
 [[sources]]
 id = "radarai"
@@ -179,6 +179,22 @@ mode = "direct"
 url = "https://www.lazysundays.net/feed"
 site = "https://www.lazysundays.net"
 note = "Summary only (~125 chars)."
+
+[[sources]]
+id = "reddit-localllama"
+name = "Reddit r/LocalLLaMA"
+mode = "direct"
+url = "https://www.reddit.com/r/LocalLLaMA/.rss"
+site = "https://www.reddit.com/r/LocalLLaMA"
+note = "Reeder reads Reddit natively; the .rss endpoint 403s plain clients."
+
+[[sources]]
+id = "reddit-rva"
+name = "Reddit r/rva"
+mode = "direct"
+url = "https://www.reddit.com/r/rva/.rss"
+site = "https://www.reddit.com/r/rva"
+note = "Reeder reads Reddit natively; the .rss endpoint 403s plain clients."
 
 # ---- hosted (1) — this repo publishes /feeds/<id>.xml ----
 

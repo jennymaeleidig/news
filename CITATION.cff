@@ -8,7 +8,7 @@ license: MIT
 url: "https://github.com/jennymaeleidig/news-digest-agent"
 abstract: >-
   A personal source log that publishes RSS feeds. sources.toml is
-  the registry — 21 sources subscribed directly in a reader app,
+  the registry — 23 sources subscribed directly in a reader app,
   1 published here: the Richmond Times-Dispatch. The published site
   is the store: each hourly run merges fresh fetches against the live
   feed, failures re-emit the predecessor byte-stable, and no API keys

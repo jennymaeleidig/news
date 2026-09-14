@@ -32,3 +32,5 @@ python -m feeds gen --direct-table docs/direct-feeds.md
 | True Anon | [patreon.com](https://www.patreon.com/truelit) | Unlisted first-party Patreon podcast feed; mixes [PREVIEW] stubs with free episodes. | `https://www.patreon.com/public-rss/2963533?show=875184` |
 | Buddha in the Mud | [buddhainthemud.com](https://buddhainthemud.com) | Full text. | `https://buddhainthemud.com/feed/` |
 | Lazy Sundays | [lazysundays.net](https://www.lazysundays.net) | Summary only (~125 chars). | `https://www.lazysundays.net/feed` |
+| Reddit r/LocalLLaMA | [reddit.com](https://www.reddit.com/r/LocalLLaMA) | Reeder reads Reddit natively; the .rss endpoint 403s plain clients. | `https://www.reddit.com/r/LocalLLaMA/.rss` |
+| Reddit r/rva | [reddit.com](https://www.reddit.com/r/rva) | Reeder reads Reddit natively; the .rss endpoint 403s plain clients. | `https://www.reddit.com/r/rva/.rss` |

@@ -1,7 +1,7 @@
 # news-digest-agent
 
 A personal source log that publishes RSS feeds. `sources.toml` is the
-registry — 22 feeds worth reading, 21 of them subscribed directly in a
+registry — 24 feeds worth reading, 23 of them subscribed directly in a
 reader app, 1 published by this repo at `https://jennymaeleidig.github.io/news-digest-agent/`.
 
 ## The site
@@ -9,9 +9,9 @@ reader app, 1 published by this repo at `https://jennymaeleidig.github.io/news-d
 | Path | What it is |
 |------|------------|
 | `/` | The index: hosted feeds with a freshness stamp, direct sources with the URL to paste into a reader |
-| `/opml.xml` | All 22 sources as one flat OPML file, importable anywhere |
+| `/opml.xml` | All 24 sources as one flat OPML file, importable anywhere |
 | `/feeds/<id>.xml` | A feed this repo publishes for a hosted source (the Richmond Times-Dispatch) |
-| [`docs/direct-feeds.md`](docs/direct-feeds.md) | The 21 direct sources as a committed table |
+| [`docs/direct-feeds.md`](docs/direct-feeds.md) | The 23 direct sources as a committed table |
 
 ## How it works
 
@@ -59,6 +59,11 @@ python -m feeds gen --direct-table docs/direct-feeds.md
 
 (Table rendering is offline — it reads the registry only.) The next push
 publishes the updated site.
+
+The index carries `<link rel="alternate" type="application/rss+xml">`
+tags for every hosted feed, so a reader app given the site URL discovers
+them on its own (Reeder's autodiscovery reads exactly these); the direct
+sources arrive by importing `/opml.xml`.
 
 ## Tests
 

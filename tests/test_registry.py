@@ -9,12 +9,12 @@ from feeds.registry import RegistryError, Source, load
 
 
 def test_real_registry_shape(registry):
-    assert len(registry.sources) == 22
-    assert len(registry.direct()) == 21
+    assert len(registry.sources) == 24
+    assert len(registry.direct()) == 23
     assert len(registry.hosted()) == 1
     # Owner-blessed registry order (direct first, hosted last).
     assert registry.direct()[0].id == "radarai"
-    assert registry.direct()[-1].id == "lazy-sundays"
+    assert registry.direct()[-1].id == "reddit-rva"
     assert registry.hosted()[0].id == "richmond-times-dispatch"
     assert registry.hosted()[-1].id == "richmond-times-dispatch"
 
@@ -37,7 +37,7 @@ def test_direct_sources_declare_no_strategy_and_no_why(registry):
 
 
 def test_feed_meta_and_channel_description(registry):
-    assert registry.feed.title == "Jenny's source log"
+    assert registry.feed.title == "Jenny's news sources"
     # a source with a note: the note is what the channel says
     noted = Source(id="x", name="X", mode="hosted", url="https://example.com/x.xml",
                    why="because", note="Kept for the LLM subset, topic-filtered server-side.")

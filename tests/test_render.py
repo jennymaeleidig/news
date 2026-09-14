@@ -23,6 +23,7 @@ from feeds.run import RunState, SourceRun
 
 from conftest import (
     BUILT_AT,
+    TEST_FEED,
     direct_source,
     registry_of,
     rss_source,
@@ -98,6 +99,28 @@ def test_the_index_js_reads_the_badge_state_from_the_vocabulary():
     html = render_index(REGISTRY, RUNS, BUILT_AT)
     assert f'el.dataset.state === "{RunState.FAILED}"' in html
     assert f'data-state="{RunState.FAILED}"' in html
+
+
+def test_index_advertises_hosted_feeds_for_reader_autodiscovery():
+    # A reader app handed the site URL finds the feeds this repo publishes
+    # from these tags alone (Reeder's feed discovery reads them).
+    html = render_index(REGISTRY, RUNS, BUILT_AT)
+    for hosted in REGISTRY.hosted():
+        href = f'{TEST_FEED.link.rstrip("/")}/feeds/{hosted.id}.xml'
+        assert (
+            f'<link rel="alternate" type="application/rss+xml" '
+            f'title="{hosted.name}" href="{href}">'
+        ) in html
+    # Direct sources are subscribed to at their own addresses, not discovered here.
+    assert 'title="Delta"' not in html
+
+
+def test_discovery_titles_are_attribute_escaped():
+    reg = registry_of(rss_source("amp", name='A & "B"', why="why"))
+    html = render_index(
+        reg, [SourceRun(source_id="amp", state=RunState.OK)], BUILT_AT,
+    )
+    assert 'title="A &amp; &quot;B&quot;"' in html
 
 
 def test_hosted_rows_explain_the_hosting():
