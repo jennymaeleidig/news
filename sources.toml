@@ -15,7 +15,7 @@
 
 [feed]
 title = "Jenny's news sources"
-link = "https://jennymaeleidig.github.io/news-digest-agent/"
+link = "https://jennymaeleidig.github.io/news/"
 language = "en"
 description = "Feeds this site publishes, and the sources behind them. The registry is sources.toml in the repo."
 description_template = "Items from {name}, part of Jenny's source log."

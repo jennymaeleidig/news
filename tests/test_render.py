@@ -136,7 +136,8 @@ def test_hosted_rows_explain_the_hosting():
 
 def test_index_has_no_digest_era_strings():
     html = render_index(REGISTRY, RUNS, BUILT_AT)
-    # "digest" survives only inside the repo/site name news-digest-agent.
+    # The name no longer carries "digest", but the check keeps digest-era
+    # vocabulary out of the rendered page.
     for dead in ("curator", "openrouter", "resend", "category", "tier"):
         assert dead not in html.lower()
 

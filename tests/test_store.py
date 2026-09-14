@@ -16,7 +16,7 @@ from feeds.transport import TransportError
 
 from conftest import ScriptedTransport, rss_source
 
-SITE = "https://jennymaeleidig.github.io/news-digest-agent"
+SITE = "https://jennymaeleidig.github.io/news"
 
 
 def feed():

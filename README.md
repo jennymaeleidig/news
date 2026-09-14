@@ -1,8 +1,8 @@
-# news-digest-agent
+# news
 
 A personal source log that publishes RSS feeds. `sources.toml` is the
 registry — 24 feeds worth reading, 23 of them subscribed directly in a
-reader app, 1 published by this repo at `https://jennymaeleidig.github.io/news-digest-agent/`.
+reader app, 1 published by this repo at `https://jennymaeleidig.github.io/news/`.
 
 ## The site
 

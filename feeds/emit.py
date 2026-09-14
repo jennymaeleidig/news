@@ -21,7 +21,7 @@ from xml.etree import ElementTree as ET
 
 from feeds.model import Item
 
-GENERATOR = "news-digest-agent feeds"
+GENERATOR = "news feeds"
 
 
 def rfc2822(dt: datetime) -> str:
